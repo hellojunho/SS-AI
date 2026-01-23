@@ -26,9 +26,13 @@ def _call_gemini(prompt: str) -> str:
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY가 설정되지 않았습니다.")
 
-    # REST 엔드포인트: 모델 이름은 환경/사용자에 따라 바꿔야 합니다.
-    url = f"https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generate?key={api_key}"
-    body = {"prompt": {"text": prompt}, "temperature": 0.2}
+    # REST 엔드포인트: 최신 Gemini 모델을 기본으로 사용합니다.
+    model = settings.gemini_model
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    body = {
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.2},
+    }
 
     resp = requests.post(url, json=body, timeout=30)
     # HTTP 오류를 직접 처리하여 404/권한 문제에 대한 상세 로그와 안내를 반환합니다.
@@ -85,7 +89,16 @@ def _call_gemini(prompt: str) -> str:
     if isinstance(data, dict):
         if "candidates" in data and data.get("candidates"):
             cand = data["candidates"][0]
-            text = cand.get("content") or cand.get("output") or cand.get("text")
+            if isinstance(cand, dict):
+                content = cand.get("content")
+                if isinstance(content, dict):
+                    parts = content.get("parts")
+                    if isinstance(parts, list) and parts:
+                        part_text = parts[0].get("text")
+                        if isinstance(part_text, str):
+                            text = part_text
+                if not text:
+                    text = cand.get("output") or cand.get("text")
         elif "output" in data and isinstance(data["output"], str):
             text = data["output"]
         elif "content" in data and isinstance(data["content"], str):

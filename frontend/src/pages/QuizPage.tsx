@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { authorizedFetch } from '../api'
 import { API_BASE_URL } from '../config'
 
 type Quiz = {
@@ -18,21 +19,19 @@ type Quiz = {
 }
 
 const QuizPage = () => {
-  const [token, setToken] = useState('')
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [loading, setLoading] = useState(false)
   const [answer, setAnswer] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [resultMessage, setResultMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const generateQuiz = async () => {
     setLoading(true)
+    setErrorMessage(null)
     try {
-      const response = await fetch(`${API_BASE_URL}/quiz/generate`, {
+      const response = await authorizedFetch(`${API_BASE_URL}/quiz/generate`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       })
       if (!response.ok) {
         throw new Error('퀴즈를 생성하지 못했습니다.')
@@ -43,6 +42,7 @@ const QuizPage = () => {
       setResultMessage(null)
     } catch (error) {
       setQuiz(null)
+      setErrorMessage('퀴즈를 가져오지 못했습니다. 로그인 상태를 확인해주세요.')
     } finally {
       setLoading(false)
     }
@@ -51,12 +51,12 @@ const QuizPage = () => {
   const submitAnswer = async () => {
     if (!quiz) return
     setSubmitting(true)
+    setErrorMessage(null)
     try {
-      const response = await fetch(`${API_BASE_URL}/quiz/${quiz.id}/answer`, {
+      const response = await authorizedFetch(`${API_BASE_URL}/quiz/${quiz.id}/answer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ answer }),
       })
@@ -79,6 +79,7 @@ const QuizPage = () => {
       setResultMessage(data.is_correct ? '정답이에요!' : '틀렸어요. 다시 도전해보세요!')
     } catch (error) {
       setResultMessage('답안을 제출하는 데 문제가 발생했습니다.')
+      setErrorMessage('답안을 제출하지 못했습니다. 로그인 상태를 확인해주세요.')
     } finally {
       setSubmitting(false)
       setAnswer('')
@@ -101,17 +102,10 @@ const QuizPage = () => {
       <h1>Quiz</h1>
       <p>요약된 대화를 바탕으로 퀴즈를 풀어보세요.</p>
       <div className="card">
-        <label className="label">
-          Access Token
-          <input
-            value={token}
-            onChange={(event) => setToken(event.target.value)}
-            placeholder="JWT 토큰을 입력하세요"
-          />
-        </label>
         <button type="button" onClick={generateQuiz} disabled={loading}>
           {loading ? '생성 중' : '퀴즈 생성'}
         </button>
+        {errorMessage && <p className="helper-text error-text">{errorMessage}</p>}
       </div>
       {quiz && (
         <div className="card">

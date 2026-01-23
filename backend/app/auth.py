@@ -6,7 +6,14 @@ from sqlalchemy.orm import Session
 
 from . import models, schemas
 from .db import get_db
-from .security import create_access_token, decode_access_token, hash_password, verify_password
+from .security import (
+    create_access_token,
+    create_refresh_token,
+    decode_access_token,
+    decode_refresh_token,
+    hash_password,
+    verify_password,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -38,8 +45,27 @@ def login(payload: schemas.UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="로그인 실패")
     user.last_logined = datetime.utcnow()
     db.commit()
-    token = create_access_token(subject=str(user.id), token_version=user.token)
-    return schemas.Token(access_token=token)
+    access_token = create_access_token(subject=str(user.id), token_version=user.token)
+    refresh_token = create_refresh_token(subject=str(user.id), token_version=user.token)
+    return schemas.Token(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.post("/refresh", response_model=schemas.Token)
+def refresh_token(payload: schemas.RefreshTokenRequest, db: Session = Depends(get_db)):
+    try:
+        refresh_payload = decode_refresh_token(payload.refresh_token)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
+    user_id = refresh_payload.get("sub")
+    token_version = refresh_payload.get("ver")
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+    if not user or user.token != token_version:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    access_token = create_access_token(subject=str(user.id), token_version=user.token)
+    new_refresh_token = create_refresh_token(subject=str(user.id), token_version=user.token)
+    return schemas.Token(access_token=access_token, refresh_token=new_refresh_token)
 
 
 def get_current_user(

@@ -9,8 +9,8 @@ const BottomNav = () => {
       <NavLink to="/quiz" className={({ isActive }) => (isActive ? 'active' : '')}>
         Quiz
       </NavLink>
-      <NavLink to="/" className={({ isActive }) => (isActive ? 'active' : '')}>
-        Home
+      <NavLink to="/mypage" className={({ isActive }) => (isActive ? 'active' : '')}>
+        My
       </NavLink>
     </nav>
   )

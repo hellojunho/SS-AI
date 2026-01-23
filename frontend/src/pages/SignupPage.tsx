@@ -11,6 +11,7 @@ const SignupPage = () => {
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   const getErrorMessage = (responseBody: unknown) => {
     if (
@@ -55,8 +56,8 @@ const SignupPage = () => {
         const responseBody = await response.json().catch(() => null)
         throw new Error(getErrorMessage(responseBody))
       }
-      setMessage('회원가입이 완료되었습니다. 로그인해주세요.')
-      setTimeout(() => navigate('/'), 800)
+      setMessage(null)
+      setShowSuccessModal(true)
     } catch (error) {
       const errorMessage =
         error instanceof Error && error.message
@@ -115,6 +116,17 @@ const SignupPage = () => {
           이미 계정이 있나요? <Link to="/">로그인</Link>
         </p>
       </div>
+      {showSuccessModal && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <h2>회원가입 성공!</h2>
+            <p>이제 로그인해서 서비스를 시작해보세요.</p>
+            <button type="button" onClick={() => navigate('/')}>
+              로그인 바로가기
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

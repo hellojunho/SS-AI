@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import BottomNav from './components/BottomNav'
@@ -9,13 +10,23 @@ import QuizPage from './pages/QuizPage'
 import SignupPage from './pages/SignupPage'
 
 const App = () => {
-  const isLoggedIn = isAuthenticated()
+  const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated())
+
+  useEffect(() => {
+    const handleAuthChange = () => setIsLoggedIn(isAuthenticated())
+    window.addEventListener('authchange', handleAuthChange)
+    window.addEventListener('storage', handleAuthChange)
+    return () => {
+      window.removeEventListener('authchange', handleAuthChange)
+      window.removeEventListener('storage', handleAuthChange)
+    }
+  }, [])
 
   return (
     <div className="app-shell">
       <main className="content">
         <Routes>
-          <Route path="/" element={isLoggedIn ? <Navigate to="/mypage" /> : <HomePage />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/mypage" element={isLoggedIn ? <MyPage /> : <Navigate to="/" />} />
           <Route path="/chat" element={isLoggedIn ? <ChatPage /> : <Navigate to="/" />} />

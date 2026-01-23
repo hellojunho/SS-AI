@@ -1,11 +1,11 @@
 # SS-AI Sports Science
 
-FastAPI + React(TypeScript) 기반 스포츠 과학 학습 서비스입니다. Docker Compose로 PostgreSQL, Backend, Frontend를 함께 실행합니다.
+FastAPI + React(TypeScript) 기반 스포츠 과학 학습 서비스입니다. Docker Compose로 MySQL, Backend, Frontend를 함께 실행합니다.
 
 ## 구성
 - **Backend**: FastAPI (`/backend`)
 - **Frontend**: React + Vite (`/frontend`)
-- **DB**: PostgreSQL
+- **DB**: MySQL
 
 ## 준비
 1. Backend 환경 변수 설정

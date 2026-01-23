@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+psycopg2://postgres:postgres@db:5432/ss_ai"
+    database_url: str = "mysql+pymysql://ss_ai:ss_ai@db:3306/ss_ai"
     jwt_secret_key: str = "change-me"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24

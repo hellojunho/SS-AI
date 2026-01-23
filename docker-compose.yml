@@ -18,8 +18,11 @@ services:
       context: ./backend
     env_file:
       - ./backend/.env
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/sa.json
     volumes:
       - ./backend:/app
+      - ./backend/sa.json:/secrets/sa.json:ro
     ports:
       - "8000:8000"
     depends_on:

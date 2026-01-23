@@ -1,8 +1,9 @@
 backend/.env
+backend/.env.example
 node_modules/
 __pycache__/
 *.pyc
 
-.env
-.env.example
-secrets.json
+frontend/secrets.json
+
+chat/

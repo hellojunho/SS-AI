@@ -2,12 +2,12 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, field_validator
 
-MAX_BCRYPT_PASSWORD_BYTES = 72
+MAX_PASSWORD_BYTES = 1024
 
 
 def _validate_password_length(password: str) -> str:
-    if len(password.encode("utf-8")) > MAX_BCRYPT_PASSWORD_BYTES:
-        raise ValueError("Password must be 72 bytes or fewer.")
+    if len(password.encode("utf-8")) > MAX_PASSWORD_BYTES:
+        raise ValueError("Password must be 1024 bytes or fewer.")
     return password
 
 

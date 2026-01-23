@@ -58,3 +58,17 @@ class QuizResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class QuizQuestionOut(BaseModel):
+    id: int
+    quiz_id: int
+    question: str
+    correct: str
+    wrong: str
+    explanation: str
+    reference: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

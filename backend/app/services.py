@@ -28,39 +28,59 @@ def _call_gemini(prompt: str) -> str:
 
     # REST 엔드포인트: 최신 Gemini 모델을 기본으로 사용합니다.
     model = settings.gemini_model
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    if model.startswith("models/"):
+        model = model.split("/", 1)[1]
+    api_versions = ["v1", "v1beta"]
+
+    def _build_url(version: str, include_key: bool) -> str:
+        base = f"https://generativelanguage.googleapis.com/{version}/models/{model}:generateContent"
+        if include_key:
+            return f"{base}?key={api_key}"
+        return base
     body = {
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.2},
     }
 
-    resp = requests.post(url, json=body, timeout=30)
-    # HTTP 오류를 직접 처리하여 404/권한 문제에 대한 상세 로그와 안내를 반환합니다.
-    try:
-        data = resp.json()
-    except ValueError:
-        data = None
+    data = None
+    resp = None
+    import logging
+
+    for version in api_versions:
+        url = _build_url(version, include_key=True)
+        resp = requests.post(url, json=body, timeout=30)
+        # HTTP 오류를 직접 처리하여 404/권한 문제에 대한 상세 로그와 안내를 반환합니다.
+        try:
+            data = resp.json()
+        except ValueError:
+            data = None
+
+        if resp.status_code == 200:
+            break
+        logging.error("Gemini API error %s (%s): %s", resp.status_code, version, resp.text)
+        if resp.status_code != 404:
+            return resp.text or f"HTTP {resp.status_code}"
+
+    if resp is None:
+        return "Gemini 요청에 실패했습니다."
 
     if resp.status_code != 200:
-        import logging
-
-        logging.error("Gemini API error %s: %s", resp.status_code, resp.text)
         # 404인 경우 서비스 계정 인증으로 재시도 시도
-        if resp.status_code == 404:
-            import os
-            try:
-                sa_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-                # 서비스 계정 경로가 실제 파일인지 확인합니다. (디렉토리일 경우 오류 방지)
-                if sa_path and os.path.isfile(sa_path):
-                    from google.oauth2 import service_account
-                    from google.auth.transport.requests import Request as GoogleAuthRequest
+        import os
+        try:
+            sa_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+            # 서비스 계정 경로가 실제 파일인지 확인합니다. (디렉토리일 경우 오류 방지)
+            if sa_path and os.path.isfile(sa_path):
+                from google.oauth2 import service_account
+                from google.auth.transport.requests import Request as GoogleAuthRequest
 
-                    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
-                    creds = service_account.Credentials.from_service_account_file(sa_path, scopes=scopes)
-                    creds.refresh(GoogleAuthRequest())
-                    token = creds.token
-                    auth_url = url.split("?", 1)[0]
-                    headers = {"Authorization": f"Bearer {token}"}
+                scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+                creds = service_account.Credentials.from_service_account_file(sa_path, scopes=scopes)
+                creds.refresh(GoogleAuthRequest())
+                token = creds.token
+                headers = {"Authorization": f"Bearer {token}"}
+                for version in api_versions:
+                    auth_url = _build_url(version, include_key=False)
                     retry_resp = requests.post(auth_url, json=body, headers=headers, timeout=30)
                     try:
                         retry_text = retry_resp.text
@@ -71,18 +91,22 @@ def _call_gemini(prompt: str) -> str:
                             data = retry_resp.json()
                         except Exception:
                             data = None
-                    else:
-                        logging.error("Gemini retry with service account failed %s: %s", retry_resp.status_code, retry_text)
-                        # 클라이언트에게는 서버가 반환한 원문을 그대로 전달합니다.
-                        return retry_text or f"HTTP {retry_resp.status_code}"
-                else:
-                    # API 키 방식에서 바로 404인 경우, 서버 응답 원문을 전달
-                    return resp.text or f"HTTP {resp.status_code}"
-            except Exception:
-                logging.exception("서비스 계정 인증 시도 중 오류")
+                        break
+                    logging.error(
+                        "Gemini retry with service account failed %s (%s): %s",
+                        retry_resp.status_code,
+                        version,
+                        retry_text,
+                    )
+                if retry_resp.status_code != 200:
+                    # 클라이언트에게는 서버가 반환한 원문을 그대로 전달합니다.
+                    return retry_text or f"HTTP {retry_resp.status_code}"
+            else:
+                # API 키 방식에서 바로 404인 경우, 서버 응답 원문을 전달
                 return resp.text or f"HTTP {resp.status_code}"
-        # 그 외 상태 코드는 서버 응답 본문을 그대로 반환
-        return resp.text or f"HTTP {resp.status_code}"
+        except Exception:
+            logging.exception("서비스 계정 인증 시도 중 오류")
+            return resp.text or f"HTTP {resp.status_code}"
 
     text: Optional[str] = None
     # 여러 가능한 필드명을 검사
@@ -125,7 +149,7 @@ def generate_chat_answer(message: str) -> tuple[str, str]:
     )
     try:
         content = _call_gemini(prompt + "\n" + message)
-    except Exception as exc:
+    except Exception:
         import logging
 
         logging.exception("Gemini 호출 중 오류 발생")

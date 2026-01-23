@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     jwt_refresh_expire_minutes: int = 30
     openai_api_key: str | None = None
     gemini_api_key: str | None = None
+    gemini_model: str = "gemini-1.5-flash"
     cors_allow_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
     cors_allow_origin_regex: str | None = None
 

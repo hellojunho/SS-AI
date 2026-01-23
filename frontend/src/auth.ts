@@ -19,6 +19,7 @@ export const saveTokens = (accessToken: string, refreshToken: string) => {
   localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
   localStorage.setItem(ACCESS_EXP_KEY, String(expiresAt))
   localStorage.setItem(REFRESH_EXP_KEY, String(expiresAt))
+  window.dispatchEvent(new Event('authchange'))
 }
 
 export const clearTokens = () => {
@@ -26,6 +27,7 @@ export const clearTokens = () => {
   localStorage.removeItem(REFRESH_TOKEN_KEY)
   localStorage.removeItem(ACCESS_EXP_KEY)
   localStorage.removeItem(REFRESH_EXP_KEY)
+  window.dispatchEvent(new Event('authchange'))
 }
 
 export const isAccessTokenValid = () => {

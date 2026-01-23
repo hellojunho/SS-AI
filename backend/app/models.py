@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -53,6 +53,8 @@ class Quiz(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    tried_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    solved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="quizzes")
     questions = relationship(
@@ -75,3 +77,39 @@ class QuizQuestion(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     quiz = relationship("Quiz", back_populates="questions")
+    answers = relationship(
+        "QuizAnswer",
+        back_populates="question",
+        cascade="all, delete-orphan",
+    )
+
+
+class QuizAnswer(Base):
+    __tablename__ = "quiz_answers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    quiz_question_id: Mapped[int] = mapped_column(Integer, ForeignKey("quiz_questions.id"))
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
+    answer_text: Mapped[str] = mapped_column(Text, nullable=False)
+    is_correct: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_wrong: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    question = relationship("QuizQuestion", back_populates="answers")
+    user = relationship("User")
+
+
+class WrongQuestion(Base):
+    __tablename__ = "wrong_questions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    quiz_question_id: Mapped[int] = mapped_column(Integer, ForeignKey("quiz_questions.id"))
+    question_creator_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
+    solver_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
+    correct_answer: Mapped[str] = mapped_column(Text, nullable=False)
+    wrong_answer: Mapped[str] = mapped_column(Text, nullable=False)
+    reference_link: Mapped[str] = mapped_column(Text, nullable=False)
+    user_answers: Mapped[str] = mapped_column(Text, nullable=False)
+    last_solved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    question = relationship("QuizQuestion")

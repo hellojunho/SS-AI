@@ -132,3 +132,38 @@ button:disabled {
 .question {
   font-weight: 600;
 }
+
+.quiz-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sticker {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.sticker-success {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.sticker-danger {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.result-message {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.answer-history ul {
+  margin-top: 6px;
+  padding-left: 18px;
+}

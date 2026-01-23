@@ -26,7 +26,10 @@ def ask_chat(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    answer, reference = generate_chat_answer(payload.message)
+    try:
+        answer, reference = generate_chat_answer(payload.message)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="ChatGPT 응답을 불러오지 못했습니다.") from exc
     date_str = datetime.utcnow().strftime("%Y-%m-%d")
     user_dir = RECORD_DIR / current_user.user_id
     _ensure_dir(user_dir)

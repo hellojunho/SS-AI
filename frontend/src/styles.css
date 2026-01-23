@@ -43,6 +43,31 @@ h1 {
   gap: 12px;
 }
 
+.card.chat-preview {
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.card.chat-preview:hover {
+  border-color: #111827;
+  transform: translateY(-2px);
+}
+
+.helper-text {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.helper-text a {
+  color: #111827;
+  text-decoration: underline;
+}
+
+.error-text {
+  color: #b91c1c;
+}
+
 .label {
   display: flex;
   flex-direction: column;

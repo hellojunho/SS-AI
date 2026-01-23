@@ -10,12 +10,20 @@ type Quiz = {
   wrong: string
   explanation: string
   reference: string
+  has_correct_attempt: boolean
+  has_wrong_attempt: boolean
+  answer_history: string[]
+  tried_at: string | null
+  solved_at: string | null
 }
 
 const QuizPage = () => {
   const [token, setToken] = useState('')
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [loading, setLoading] = useState(false)
+  const [answer, setAnswer] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [resultMessage, setResultMessage] = useState<string | null>(null)
 
   const generateQuiz = async () => {
     setLoading(true)
@@ -31,12 +39,62 @@ const QuizPage = () => {
       }
       const data = await response.json()
       setQuiz(data)
+      setAnswer('')
+      setResultMessage(null)
     } catch (error) {
       setQuiz(null)
     } finally {
       setLoading(false)
     }
   }
+
+  const submitAnswer = async () => {
+    if (!quiz) return
+    setSubmitting(true)
+    try {
+      const response = await fetch(`${API_BASE_URL}/quiz/${quiz.id}/answer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ answer }),
+      })
+      if (!response.ok) {
+        throw new Error('답안을 제출하지 못했습니다.')
+      }
+      const data = await response.json()
+      setQuiz((prev) =>
+        prev
+          ? {
+              ...prev,
+              has_correct_attempt: data.has_correct_attempt,
+              has_wrong_attempt: data.has_wrong_attempt,
+              answer_history: data.answer_history,
+              tried_at: data.tried_at,
+              solved_at: data.solved_at,
+            }
+          : prev,
+      )
+      setResultMessage(data.is_correct ? '정답이에요!' : '틀렸어요. 다시 도전해보세요!')
+    } catch (error) {
+      setResultMessage('답안을 제출하는 데 문제가 발생했습니다.')
+    } finally {
+      setSubmitting(false)
+      setAnswer('')
+    }
+  }
+
+  const stickerText = quiz?.has_correct_attempt
+    ? '전에 맞힌 문제에요!'
+    : quiz?.has_wrong_attempt
+      ? '전에 틀린 문제에요!'
+      : null
+  const stickerClass = quiz?.has_correct_attempt
+    ? 'sticker sticker-success'
+    : quiz?.has_wrong_attempt
+      ? 'sticker sticker-danger'
+      : ''
 
   return (
     <section className="page">
@@ -57,8 +115,23 @@ const QuizPage = () => {
       </div>
       {quiz && (
         <div className="card">
-          <h2>{quiz.title}</h2>
+          <div className="quiz-header">
+            <h2>{quiz.title}</h2>
+            {stickerText && <span className={stickerClass}>{stickerText}</span>}
+          </div>
           <p className="question">{quiz.question}</p>
+          <label className="label">
+            답안 입력
+            <input
+              value={answer}
+              onChange={(event) => setAnswer(event.target.value)}
+              placeholder="답을 입력하세요"
+            />
+          </label>
+          <button type="button" onClick={submitAnswer} disabled={submitting || !answer}>
+            {submitting ? '제출 중' : '답 제출'}
+          </button>
+          {resultMessage && <p className="result-message">{resultMessage}</p>}
           <div>
             <strong>정답:</strong> {quiz.correct}
           </div>
@@ -71,6 +144,16 @@ const QuizPage = () => {
           <div>
             <strong>추가 자료:</strong> {quiz.reference}
           </div>
+          {quiz.answer_history.length > 0 && (
+            <div className="answer-history">
+              <strong>입력한 답:</strong>
+              <ul>
+                {quiz.answer_history.map((item, index) => (
+                  <li key={`${item}-${index}`}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </section>

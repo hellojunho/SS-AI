@@ -55,6 +55,11 @@ class QuizResponse(BaseModel):
     wrong: str
     explanation: str
     reference: str
+    has_correct_attempt: bool = False
+    has_wrong_attempt: bool = False
+    answer_history: list[str] = []
+    tried_at: datetime | None = None
+    solved_at: datetime | None = None
 
     class Config:
         from_attributes = True
@@ -69,6 +74,26 @@ class QuizQuestionOut(BaseModel):
     explanation: str
     reference: str
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class QuizAnswerCreate(BaseModel):
+    answer: str
+
+
+class QuizAnswerResponse(BaseModel):
+    quiz_id: int
+    question_id: int
+    answer: str
+    is_correct: bool
+    is_wrong: bool
+    has_correct_attempt: bool
+    has_wrong_attempt: bool
+    answer_history: list[str]
+    tried_at: datetime | None
+    solved_at: datetime | None
 
     class Config:
         from_attributes = True

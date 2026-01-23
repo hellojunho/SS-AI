@@ -52,6 +52,21 @@ class Quiz(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
     title: Mapped[str] = mapped_column(String(100), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="quizzes")
+    questions = relationship(
+        "QuizQuestion",
+        back_populates="quiz",
+        cascade="all, delete-orphan",
+    )
+
+
+class QuizQuestion(Base):
+    __tablename__ = "quiz_questions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    quiz_id: Mapped[int] = mapped_column(Integer, ForeignKey("quizzes.id"))
     question: Mapped[str] = mapped_column(Text, nullable=False)
     correct: Mapped[str] = mapped_column(Text, nullable=False)
     wrong: Mapped[str] = mapped_column(Text, nullable=False)
@@ -59,4 +74,4 @@ class Quiz(Base):
     reference: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    user = relationship("User", back_populates="quizzes")
+    quiz = relationship("Quiz", back_populates="questions")

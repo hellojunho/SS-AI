@@ -15,6 +15,21 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 SUMMARY_DIR = BASE_DIR / "chat" / "summation"
 
 
+def _quiz_to_response(quiz: models.Quiz) -> schemas.QuizResponse:
+    if not quiz.questions:
+        raise HTTPException(status_code=404, detail="퀴즈 문항을 찾을 수 없습니다.")
+    question = quiz.questions[0]
+    return schemas.QuizResponse(
+        id=quiz.id,
+        title=quiz.title,
+        question=question.question,
+        correct=question.correct,
+        wrong=question.wrong,
+        explanation=question.explanation,
+        reference=question.reference,
+    )
+
+
 @router.post("/generate", response_model=schemas.QuizResponse)
 def generate_quiz_from_summary(
     current_user: models.User = Depends(get_current_user),
@@ -26,22 +41,23 @@ def generate_quiz_from_summary(
         raise HTTPException(status_code=404, detail="요약 파일이 없습니다.")
     summary = summary_file.read_text(encoding="utf-8")
     quiz_payload = generate_quiz(summary)
-    quiz = models.Quiz(
-        user_id=current_user.id,
-        title="",
+    quiz = models.Quiz(user_id=current_user.id, title="")
+    question = models.QuizQuestion(
         question=quiz_payload.get("question", ""),
         correct=quiz_payload.get("correct", ""),
         wrong=quiz_payload.get("wrong", ""),
         explanation=quiz_payload.get("explanation", ""),
         reference=quiz_payload.get("reference", ""),
+        quiz=quiz,
     )
     db.add(quiz)
+    db.add(question)
     db.commit()
     db.refresh(quiz)
     quiz.title = f"quiz{quiz.id}"
     db.commit()
     db.refresh(quiz)
-    return quiz
+    return _quiz_to_response(quiz)
 
 
 @router.get("/latest", response_model=schemas.QuizResponse)
@@ -57,7 +73,7 @@ def latest_quiz(
     )
     if not quiz:
         raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
-    return quiz
+    return _quiz_to_response(quiz)
 
 
 @router.get("/{quiz_id}", response_model=schemas.QuizResponse)
@@ -71,4 +87,4 @@ def get_quiz(
     ).first()
     if not quiz:
         raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
-    return quiz
+    return _quiz_to_response(quiz)

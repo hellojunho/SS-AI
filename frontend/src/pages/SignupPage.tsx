@@ -12,6 +12,28 @@ const SignupPage = () => {
   const [message, setMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  const getErrorMessage = (responseBody: unknown) => {
+    if (
+      responseBody &&
+      typeof responseBody === 'object' &&
+      'detail' in responseBody &&
+      Array.isArray(responseBody.detail)
+    ) {
+      const emailError = responseBody.detail.find(
+        (item) =>
+          item &&
+          typeof item === 'object' &&
+          'loc' in item &&
+          Array.isArray(item.loc) &&
+          item.loc.includes('email'),
+      )
+      if (emailError) {
+        return '올바른 이메일 주소를 입력해주세요.'
+      }
+    }
+    return '회원가입 정보를 확인해주세요.'
+  }
+
   const handleSignup = async () => {
     if (!userId || !userName || !email || !password) return
     setLoading(true)
@@ -30,12 +52,17 @@ const SignupPage = () => {
         }),
       })
       if (!response.ok) {
-        throw new Error('회원가입에 실패했습니다.')
+        const responseBody = await response.json().catch(() => null)
+        throw new Error(getErrorMessage(responseBody))
       }
       setMessage('회원가입이 완료되었습니다. 로그인해주세요.')
       setTimeout(() => navigate('/'), 800)
     } catch (error) {
-      setMessage('회원가입 정보를 확인해주세요.')
+      const errorMessage =
+        error instanceof Error && error.message
+          ? error.message
+          : '회원가입 정보를 확인해주세요.'
+      setMessage(errorMessage)
     } finally {
       setLoading(false)
     }

@@ -81,6 +81,18 @@ h1 {
   transform: translateY(-2px);
 }
 
+.logout-card {
+  align-items: flex-start;
+}
+
+.logout-button {
+  background: #b91c1c;
+}
+
+.logout-button:hover {
+  background: #991b1b;
+}
+
 .helper-text {
   font-size: 13px;
   color: #6b7280;

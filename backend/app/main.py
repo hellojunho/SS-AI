@@ -36,9 +36,12 @@ def _ensure_quiz_choices_column() -> None:
     if "choices" in columns:
         return
     with engine.begin() as connection:
-        connection.execute(
-            text("ALTER TABLE quiz_questions ADD COLUMN choices TEXT NOT NULL DEFAULT '[]'")
-        )
+        # Add column without a TEXT default (MySQL doesn't allow defaults for TEXT/JSON)
+        connection.execute(text("ALTER TABLE quiz_questions ADD COLUMN choices TEXT"))
+        # Initialize existing rows with an empty array representation
+        connection.execute(text("UPDATE quiz_questions SET choices = '[]' WHERE choices IS NULL"))
+        # Make the column NOT NULL now that values are initialized
+        connection.execute(text("ALTER TABLE quiz_questions MODIFY COLUMN choices TEXT NOT NULL"))
 
 
 @app.on_event("startup")

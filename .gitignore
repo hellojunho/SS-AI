@@ -7,3 +7,5 @@ __pycache__/
 frontend/secrets.json
 
 chat/
+
+logs/

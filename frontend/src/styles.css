@@ -141,6 +141,12 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.button-with-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .banner-grid {
   display: grid;
   gap: 14px;

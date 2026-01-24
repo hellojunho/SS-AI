@@ -3,6 +3,7 @@ import asyncio
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import inspect, text
 
 from . import models
 from .auth import router as auth_router
@@ -27,12 +28,25 @@ app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(quiz_router)
 
+def _ensure_quiz_choices_column() -> None:
+    inspector = inspect(engine)
+    if "quiz_questions" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("quiz_questions")}
+    if "choices" in columns:
+        return
+    with engine.begin() as connection:
+        connection.execute(
+            text("ALTER TABLE quiz_questions ADD COLUMN choices TEXT NOT NULL DEFAULT '[]'")
+        )
+
 
 @app.on_event("startup")
 async def startup() -> None:
     for attempt in range(1, settings.database_connect_max_retries + 1):
         try:
             Base.metadata.create_all(bind=engine)
+            _ensure_quiz_choices_column()
             return
         except Exception:
             if attempt == settings.database_connect_max_retries:

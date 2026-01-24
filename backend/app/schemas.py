@@ -59,6 +59,22 @@ class ChatResponse(BaseModel):
     file_path: str
 
 
+class ChatHistoryEntry(BaseModel):
+    role: str
+    content: str
+
+
+class ChatHistoryResponse(BaseModel):
+    date: str
+    entries: list[ChatHistoryEntry]
+    is_today: bool
+
+
+class ChatHistoryDatesResponse(BaseModel):
+    dates: list[str]
+    today: str
+
+
 class SummaryResponse(BaseModel):
     file_path: str
     summary: str

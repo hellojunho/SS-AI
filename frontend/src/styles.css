@@ -29,6 +29,10 @@ body {
   gap: 16px;
 }
 
+.page.chat-page {
+  max-width: 960px;
+}
+
 h1 {
   font-size: 28px;
 }
@@ -191,6 +195,62 @@ button:disabled {
   gap: 10px;
 }
 
+.chat-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.chat-sidebar {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 240px;
+}
+
+.chat-sidebar h2 {
+  font-size: 16px;
+}
+
+.chat-date-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-date-button {
+  background: #f3f4f6;
+  color: #111827;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 10px;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chat-date-button.active {
+  background: #111827;
+  color: #fff;
+}
+
+.chat-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .chat-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .bubble {
   padding: 12px 14px;
   border-radius: 16px;
@@ -215,8 +275,30 @@ button:disabled {
   gap: 8px;
 }
 
+.chat-input button {
+  min-width: 88px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .chat-input input {
   flex: 1;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .bottom-nav {

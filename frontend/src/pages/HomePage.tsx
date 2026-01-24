@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { isAuthenticated, saveTokens } from '../auth'
@@ -48,6 +48,11 @@ const HomePage = () => {
     }
   }
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    handleLogin()
+  }
+
   return (
     <section className="page">
       <div className="hero">
@@ -74,7 +79,7 @@ const HomePage = () => {
           </Link>
         </div>
       ) : (
-        <div className="card login-card">
+        <form className="card login-card" onSubmit={handleSubmit}>
           <h2>로그인</h2>
           <label className="label">
             아이디
@@ -93,14 +98,14 @@ const HomePage = () => {
               placeholder="비밀번호를 입력하세요"
             />
           </label>
-          <button type="button" onClick={handleLogin} disabled={loading}>
+          <button type="submit" disabled={loading}>
             {loading ? '로그인 중' : '로그인'}
           </button>
           {errorMessage && <p className="helper-text error-text">{errorMessage}</p>}
           <p className="helper-text">
             계정이 없나요? <Link to="/signup">signup</Link>
           </p>
-        </div>
+        </form>
       )}
     </section>
   )

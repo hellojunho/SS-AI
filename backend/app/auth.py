@@ -85,6 +85,12 @@ def get_current_user(
     return user
 
 
+def require_admin(current_user: models.User = Depends(get_current_user)) -> models.User:
+    if current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="관리자 권한이 필요합니다.")
+    return current_user
+
+
 @router.get("/me", response_model=schemas.UserOut)
 def me(current_user: models.User = Depends(get_current_user)):
     return current_user

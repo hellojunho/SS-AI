@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from . import models, schemas
-from .auth import get_current_user
+from .auth import get_current_user, require_admin
 from .db import get_db
 from .services import generate_quiz, summarize_chat
 
@@ -78,33 +78,29 @@ def _quiz_to_response(
     )
 
 
-@router.post("/generate", response_model=schemas.QuizResponse)
-def generate_quiz_from_summary(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    record_file = _latest_record_file(current_user.user_id)
+def _generate_quiz_for_user(target_user: models.User, db: Session) -> models.Quiz:
+    record_file = _latest_record_file(target_user.user_id)
     if not record_file or not record_file.exists():
         raise HTTPException(status_code=404, detail="대화 기록이 없습니다.")
     content = record_file.read_text(encoding="utf-8")
     summary_date = datetime.utcnow()
     summary = summarize_chat(content, summary_date)
-    user_summary_dir = SUMMARY_DIR / current_user.user_id
+    user_summary_dir = SUMMARY_DIR / target_user.user_id
     user_summary_dir.mkdir(parents=True, exist_ok=True)
     summary_file = (
         user_summary_dir
-        / f"{current_user.user_id}-{summary_date.strftime('%Y-%m-%d-%H%M')}_sum.txt"
+        / f"{target_user.user_id}-{summary_date.strftime('%Y-%m-%d-%H%M')}_sum.txt"
     )
     summary_file.write_text(summary, encoding="utf-8")
     summary_record = models.ChatSummary(
-        user_id=current_user.id, file_path=str(summary_file), summary_date=summary_date
+        user_id=target_user.id, file_path=str(summary_file), summary_date=summary_date
     )
     db.add(summary_record)
     quiz_payload = generate_quiz(summary)
     choices = quiz_payload.get("choices", [])
     if not isinstance(choices, list):
         choices = []
-    quiz = models.Quiz(user_id=current_user.id, title="")
+    quiz = models.Quiz(user_id=target_user.id, title="")
     question = models.QuizQuestion(
         question=quiz_payload.get("question", ""),
         choices=json.dumps(choices, ensure_ascii=False),
@@ -121,7 +117,32 @@ def generate_quiz_from_summary(
     quiz.title = f"quiz{quiz.id}"
     db.commit()
     db.refresh(quiz)
+    return quiz
+
+
+@router.post("/generate", response_model=schemas.QuizResponse)
+def generate_quiz_from_summary(
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    quiz = _generate_quiz_for_user(current_user, db)
     return _quiz_to_response(quiz, current_user=current_user, db=db)
+
+
+@router.post("/admin/generate", response_model=schemas.AdminQuizResponse)
+def admin_generate_quiz(
+    payload: schemas.AdminQuizGenerateRequest,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    target_user = (
+        db.query(models.User).filter(models.User.user_id == payload.user_id).first()
+    )
+    if not target_user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+    quiz = _generate_quiz_for_user(target_user, db)
+    response = _quiz_to_response(quiz, current_user=current_user, db=db)
+    return schemas.AdminQuizResponse(**response.model_dump(), source_user_id=target_user.user_id)
 
 
 @router.get("/latest", response_model=schemas.QuizResponse)

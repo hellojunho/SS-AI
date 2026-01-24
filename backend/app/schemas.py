@@ -32,6 +32,7 @@ class UserOut(BaseModel):
     user_id: str
     user_name: str
     email: EmailStr
+    role: str
     created_at: datetime
     last_logined: datetime | None
 
@@ -132,3 +133,11 @@ class QuizAnswerResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AdminQuizGenerateRequest(BaseModel):
+    user_id: str
+
+
+class AdminQuizResponse(QuizResponse):
+    source_user_id: str

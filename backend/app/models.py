@@ -15,6 +15,7 @@ class User(Base):
     user_name: Mapped[str] = mapped_column(String(100), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="general")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     last_logined: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     token: Mapped[int] = mapped_column(Integer, default=0)

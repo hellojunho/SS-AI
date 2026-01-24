@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { authorizedFetch } from '../api'
 import { clearTokens, isAuthenticated } from '../auth'
+import { API_BASE_URL } from '../config'
 
 const MyPage = () => {
   const navigate = useNavigate()
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated())
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     const handleAuthChange = () => setIsLoggedIn(isAuthenticated())
@@ -16,6 +19,26 @@ const MyPage = () => {
       window.removeEventListener('storage', handleAuthChange)
     }
   }, [])
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setIsAdmin(false)
+      return
+    }
+    const fetchRole = async () => {
+      try {
+        const response = await authorizedFetch(`${API_BASE_URL}/auth/me`)
+        if (!response.ok) {
+          throw new Error('사용자 정보를 불러오지 못했습니다.')
+        }
+        const data = (await response.json()) as { role?: string }
+        setIsAdmin(data.role === 'admin')
+      } catch (error) {
+        setIsAdmin(false)
+      }
+    }
+    fetchRole()
+  }, [isLoggedIn])
 
   const handleLogout = () => {
     clearTokens()
@@ -51,6 +74,22 @@ const MyPage = () => {
           <button type="button" className="logout-button" onClick={handleLogout}>
             로그아웃
           </button>
+        </div>
+      )}
+      {isAdmin && (
+        <div
+          className="card chat-preview"
+          onClick={() => navigate('/admin')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              navigate('/admin')
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          <h2>관리자 페이지</h2>
+          <p>사용자 대화 기록 기반 퀴즈를 생성할 수 있습니다.</p>
         </div>
       )}
     </section>

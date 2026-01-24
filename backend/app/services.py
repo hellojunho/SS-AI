@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -225,9 +226,8 @@ def generate_quiz(summary: str) -> dict:
             "explanation": "",
             "reference": "",
         }
-    try:
-        payload = json.loads(content)
-    except json.JSONDecodeError:
+    payload = _extract_quiz_payload(content)
+    if payload is None:
         _log_issue("quiz_response_parse", messages=messages, response=content)
         return {
             "question": content.strip(),
@@ -282,3 +282,29 @@ def _normalize_quiz_payload(payload: dict) -> dict:
         "explanation": str(payload.get("explanation", "")).strip(),
         "reference": str(payload.get("reference", "")).strip(),
     }
+
+
+def _extract_quiz_payload(content: str) -> dict | None:
+    content = content.strip()
+    if not content:
+        return None
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        pass
+    code_block = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
+    if code_block:
+        json_block = code_block.group(1).strip()
+        try:
+            return json.loads(json_block)
+        except json.JSONDecodeError:
+            pass
+    start = content.find("{")
+    end = content.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        candidate = content[start : end + 1]
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            return None
+    return None

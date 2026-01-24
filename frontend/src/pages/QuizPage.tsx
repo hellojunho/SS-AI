@@ -30,13 +30,11 @@ const QuizPage = () => {
   const [finishedMessage, setFinishedMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const generateQuiz = async () => {
+  const loadQuiz = async () => {
     setLoading(true)
     setErrorMessage(null)
     try {
-      const response = await authorizedFetch(`${API_BASE_URL}/quiz/generate`, {
-        method: 'POST',
-      })
+      const response = await authorizedFetch(`${API_BASE_URL}/quiz/latest`)
       if (!response.ok) {
         throw new Error('퀴즈를 가져오지 못했습니다.')
       }
@@ -177,7 +175,7 @@ const QuizPage = () => {
       <h1>Quiz</h1>
       <p>요약된 대화를 바탕으로 퀴즈를 풀어보세요.</p>
       <div className="card">
-        <button type="button" onClick={generateQuiz} disabled={loading}>
+        <button type="button" onClick={loadQuiz} disabled={loading}>
           {loading ? (
             <span className="button-with-spinner">
               <span className="spinner" />

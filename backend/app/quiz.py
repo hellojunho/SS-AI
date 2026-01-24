@@ -8,12 +8,33 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 from .auth import get_current_user
 from .db import get_db
-from .services import generate_quiz
+from .services import generate_quiz, summarize_chat
 
 router = APIRouter(prefix="/quiz", tags=["quiz"])
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 SUMMARY_DIR = BASE_DIR / "chat" / "summation"
+RECORD_DIR = BASE_DIR / "chat" / "record"
+
+
+def _latest_record_file(user_id: str) -> Path | None:
+    user_dir = RECORD_DIR / user_id
+    if not user_dir.exists():
+        return None
+    record_files = list(user_dir.glob(f"{user_id}-*.txt"))
+    if not record_files:
+        return None
+    return max(record_files, key=lambda path: path.stat().st_mtime)
+
+
+def _parse_choices(raw_choices: str) -> list[str]:
+    try:
+        parsed = json.loads(raw_choices)
+    except json.JSONDecodeError:
+        return []
+    if isinstance(parsed, list):
+        return [str(item) for item in parsed]
+    return []
 
 
 def _quiz_to_response(
@@ -44,8 +65,9 @@ def _quiz_to_response(
         id=quiz.id,
         title=quiz.title,
         question=question.question,
+        choices=_parse_choices(question.choices),
         correct=question.correct,
-        wrong=question.wrong,
+        wrong=_parse_choices(question.wrong),
         explanation=question.explanation,
         reference=question.reference,
         has_correct_attempt=has_correct_attempt,
@@ -61,17 +83,33 @@ def generate_quiz_from_summary(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    date_str = datetime.utcnow().strftime("%Y-%m-%d")
-    summary_file = SUMMARY_DIR / current_user.user_id / f"{current_user.user_id}-{date_str}_sum.txt"
-    if not summary_file.exists():
-        raise HTTPException(status_code=404, detail="요약 파일이 없습니다.")
-    summary = summary_file.read_text(encoding="utf-8")
+    record_file = _latest_record_file(current_user.user_id)
+    if not record_file or not record_file.exists():
+        raise HTTPException(status_code=404, detail="대화 기록이 없습니다.")
+    content = record_file.read_text(encoding="utf-8")
+    summary_date = datetime.utcnow()
+    summary = summarize_chat(content, summary_date)
+    user_summary_dir = SUMMARY_DIR / current_user.user_id
+    user_summary_dir.mkdir(parents=True, exist_ok=True)
+    summary_file = (
+        user_summary_dir
+        / f"{current_user.user_id}-{summary_date.strftime('%Y-%m-%d-%H%M')}_sum.txt"
+    )
+    summary_file.write_text(summary, encoding="utf-8")
+    summary_record = models.ChatSummary(
+        user_id=current_user.id, file_path=str(summary_file), summary_date=summary_date
+    )
+    db.add(summary_record)
     quiz_payload = generate_quiz(summary)
+    choices = quiz_payload.get("choices", [])
+    if not isinstance(choices, list):
+        choices = []
     quiz = models.Quiz(user_id=current_user.id, title="")
     question = models.QuizQuestion(
         question=quiz_payload.get("question", ""),
+        choices=json.dumps(choices, ensure_ascii=False),
         correct=quiz_payload.get("correct", ""),
-        wrong=quiz_payload.get("wrong", ""),
+        wrong=json.dumps(quiz_payload.get("wrong", []), ensure_ascii=False),
         explanation=quiz_payload.get("explanation", ""),
         reference=quiz_payload.get("reference", ""),
         quiz=quiz,
@@ -99,6 +137,23 @@ def latest_quiz(
     )
     if not quiz:
         raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
+    return _quiz_to_response(quiz, current_user=current_user, db=db)
+
+
+@router.get("/next", response_model=schemas.QuizResponse)
+def next_quiz(
+    current_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    quiz = (
+        db.query(models.Quiz)
+        .filter(models.Quiz.user_id == current_user.id, models.Quiz.id > current_id)
+        .order_by(models.Quiz.id.asc())
+        .first()
+    )
+    if not quiz:
+        raise HTTPException(status_code=404, detail="다음 퀴즈가 없습니다.")
     return _quiz_to_response(quiz, current_user=current_user, db=db)
 
 

@@ -177,15 +177,18 @@ def generate_quiz(summary: str) -> dict:
     if not settings.openai_api_key:
         return {
             "question": "OPENAI_API_KEY가 설정되지 않아 퀴즈를 생성할 수 없습니다.",
+            "choices": [],
+            "correct_index": -1,
             "correct": "",
-            "wrong": "",
+            "wrong": [],
             "explanation": "",
             "reference": "",
         }
     system_prompt = (
         "다음 요약 내용을 바탕으로 1개의 퀴즈를 생성하세요. "
         "JSON 형식으로만 답변하세요. "
-        "형식: {\"question\": \"...\", \"correct\": \"...\", \"wrong\": \"...\", \"explanation\": \"정답/오답 해설\", \"reference\": \"관련 논문 또는 영상 링크\"}"
+        "보기는 4개이며 정답은 1개입니다. "
+        "형식: {\"question\": \"...\", \"choices\": [\"보기1\", \"보기2\", \"보기3\", \"보기4\"], \"correct_index\": 0, \"explanation\": \"정답/오답 해설\", \"reference\": \"관련 논문 또는 영상 링크\"}"
     )
     messages = [
         {"role": "system", "content": system_prompt},
@@ -203,8 +206,10 @@ def generate_quiz(summary: str) -> dict:
         logging.exception("퀴즈 생성 중 429/Rate limit 발생 (로그: %s)", issue_path)
         return {
             "question": "요청을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.",
+            "choices": [],
+            "correct_index": -1,
             "correct": "",
-            "wrong": "",
+            "wrong": [],
             "explanation": "",
             "reference": "",
         }
@@ -213,19 +218,67 @@ def generate_quiz(summary: str) -> dict:
         logging.exception("퀴즈 생성 중 오류 발생 (로그: %s)", issue_path)
         return {
             "question": "요청을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.",
+            "choices": [],
+            "correct_index": -1,
             "correct": "",
-            "wrong": "",
+            "wrong": [],
             "explanation": "",
             "reference": "",
         }
     try:
-        return json.loads(content)
+        payload = json.loads(content)
     except json.JSONDecodeError:
         _log_issue("quiz_response_parse", messages=messages, response=content)
         return {
             "question": content.strip(),
+            "choices": [],
+            "correct_index": -1,
             "correct": "",
-            "wrong": "",
+            "wrong": [],
             "explanation": "",
             "reference": "",
         }
+    return _normalize_quiz_payload(payload)
+
+
+def _normalize_quiz_payload(payload: dict) -> dict:
+    question = str(payload.get("question", "")).strip()
+    choices = payload.get("choices", [])
+    if not isinstance(choices, list):
+        choices = []
+    normalized_choices = [str(choice).strip() for choice in choices if str(choice).strip()]
+    correct_index = payload.get("correct_index", -1)
+    try:
+        correct_index = int(correct_index)
+    except (TypeError, ValueError):
+        correct_index = -1
+    if len(normalized_choices) != 4 or correct_index not in range(4):
+        correct_text = str(payload.get("correct", "")).strip()
+        wrong = payload.get("wrong", [])
+        wrong_choices: list[str] = []
+        if isinstance(wrong, list):
+            wrong_choices = [str(item).strip() for item in wrong if str(item).strip()]
+        elif isinstance(wrong, str):
+            wrong_choices = [item.strip() for item in wrong.split("\n") if item.strip()]
+        if correct_text:
+            normalized_choices = [correct_text] + wrong_choices
+            normalized_choices = normalized_choices[:4]
+            while len(normalized_choices) < 4:
+                normalized_choices.append(f"보기 {len(normalized_choices) + 1}")
+            correct_index = 0
+        else:
+            normalized_choices = normalized_choices[:4]
+            while len(normalized_choices) < 4:
+                normalized_choices.append(f"보기 {len(normalized_choices) + 1}")
+            correct_index = 0 if normalized_choices else -1
+    correct = normalized_choices[correct_index] if correct_index in range(4) else ""
+    wrong = [choice for index, choice in enumerate(normalized_choices) if index != correct_index]
+    return {
+        "question": question,
+        "choices": normalized_choices,
+        "correct_index": correct_index,
+        "correct": correct,
+        "wrong": wrong,
+        "explanation": str(payload.get("explanation", "")).strip(),
+        "reference": str(payload.get("reference", "")).strip(),
+    }

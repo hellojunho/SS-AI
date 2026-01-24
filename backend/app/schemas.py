@@ -84,8 +84,9 @@ class QuizResponse(BaseModel):
     id: int
     title: str
     question: str
+    choices: list[str]
     correct: str
-    wrong: str
+    wrong: list[str]
     explanation: str
     reference: str
     has_correct_attempt: bool = False
@@ -102,8 +103,9 @@ class QuizQuestionOut(BaseModel):
     id: int
     quiz_id: int
     question: str
+    choices: list[str]
     correct: str
-    wrong: str
+    wrong: list[str]
     explanation: str
     reference: str
     created_at: datetime

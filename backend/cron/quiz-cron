@@ -1,0 +1,1 @@
+*/5 * * * * root /app/cron/quiz_cron.sh >> /var/log/quiz-cron.log 2>&1

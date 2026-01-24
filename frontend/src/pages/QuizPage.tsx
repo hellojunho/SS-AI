@@ -166,11 +166,26 @@ const QuizPage = () => {
 
   return (
     <section className="page">
+      <div className="chat-header">
+        <button type="button" className="chat-nav-button" onClick={() => navigate(-1)}>
+          이전
+        </button>
+        <button type="button" className="chat-nav-button" onClick={() => navigate('/')}>
+          🏠
+        </button>
+      </div>
       <h1>Quiz</h1>
       <p>요약된 대화를 바탕으로 퀴즈를 풀어보세요.</p>
       <div className="card">
         <button type="button" onClick={generateQuiz} disabled={loading}>
-          {loading ? '불러오는 중' : '퀴즈 불러오기'}
+          {loading ? (
+            <span className="button-with-spinner">
+              <span className="spinner" />
+              불러오는 중
+            </span>
+          ) : (
+            '퀴즈 불러오기'
+          )}
         </button>
         {errorMessage && <p className="helper-text error-text">{errorMessage}</p>}
       </div>
@@ -223,8 +238,15 @@ const QuizPage = () => {
               <button type="button" className="secondary" onClick={handleCloseModal}>
                 닫기
               </button>
-              <button type="button" onClick={handleNextQuiz}>
-                다음 문제
+              <button type="button" onClick={handleNextQuiz} disabled={loading}>
+                {loading ? (
+                  <span className="button-with-spinner">
+                    <span className="spinner" />
+                    불러오는 중
+                  </span>
+                ) : (
+                  '다음 문제'
+                )}
               </button>
             </div>
           </div>

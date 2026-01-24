@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import { authorizedFetch } from '../api'
 import { API_BASE_URL } from '../config'
@@ -7,8 +8,9 @@ type Quiz = {
   id: number
   title: string
   question: string
+  choices: string[]
   correct: string
-  wrong: string
+  wrong: string[]
   explanation: string
   reference: string
   has_correct_attempt: boolean
@@ -19,27 +21,28 @@ type Quiz = {
 }
 
 const QuizPage = () => {
+  const navigate = useNavigate()
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [loading, setLoading] = useState(false)
-  const [answer, setAnswer] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [resultMessage, setResultMessage] = useState<string | null>(null)
+  const [answerStatus, setAnswerStatus] = useState<'correct' | 'wrong' | null>(null)
+  const [activeModal, setActiveModal] = useState<'correct' | 'wrong' | 'finished' | null>(null)
+  const [finishedMessage, setFinishedMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const generateQuiz = async () => {
+  const loadLatestQuiz = async () => {
     setLoading(true)
     setErrorMessage(null)
     try {
-      const response = await authorizedFetch(`${API_BASE_URL}/quiz/generate`, {
-        method: 'POST',
-      })
+      const response = await authorizedFetch(`${API_BASE_URL}/quiz/latest`)
       if (!response.ok) {
-        throw new Error('퀴즈를 생성하지 못했습니다.')
+        throw new Error('퀴즈를 가져오지 못했습니다.')
       }
       const data = await response.json()
       setQuiz(data)
-      setAnswer('')
-      setResultMessage(null)
+      setAnswerStatus(null)
+      setActiveModal(null)
+      setFinishedMessage(null)
     } catch (error) {
       setQuiz(null)
       setErrorMessage('퀴즈를 가져오지 못했습니다. 로그인 상태를 확인해주세요.')
@@ -48,7 +51,7 @@ const QuizPage = () => {
     }
   }
 
-  const submitAnswer = async () => {
+  const submitAnswer = async (selectedAnswer: string) => {
     if (!quiz) return
     setSubmitting(true)
     setErrorMessage(null)
@@ -58,7 +61,7 @@ const QuizPage = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ answer }),
+        body: JSON.stringify({ answer: selectedAnswer }),
       })
       if (!response.ok) {
         throw new Error('답안을 제출하지 못했습니다.')
@@ -76,19 +79,60 @@ const QuizPage = () => {
             }
           : prev,
       )
-      setResultMessage(data.is_correct ? '정답이에요!' : '틀렸어요. 다시 도전해보세요!')
+      if (data.is_correct) {
+        setAnswerStatus('correct')
+        setActiveModal('correct')
+      } else {
+        setAnswerStatus('wrong')
+        setActiveModal('wrong')
+      }
     } catch (error) {
-      setResultMessage('답안을 제출하는 데 문제가 발생했습니다.')
       setErrorMessage('답안을 제출하지 못했습니다. 로그인 상태를 확인해주세요.')
     } finally {
       setSubmitting(false)
-      setAnswer('')
     }
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    submitAnswer()
+  const handleChoiceClick = (choice: string) => {
+    if (submitting || activeModal) return
+    submitAnswer(choice)
+  }
+
+  const handleNextQuiz = async () => {
+    if (!quiz) return
+    setLoading(true)
+    setErrorMessage(null)
+    try {
+      const response = await authorizedFetch(`${API_BASE_URL}/quiz/next?current_id=${quiz.id}`)
+      if (!response.ok) {
+        setFinishedMessage('오늘의 문제를 모두 풀었어요! 홈으로 이동합니다.')
+        setActiveModal('finished')
+        return
+      }
+      const data = await response.json()
+      setQuiz(data)
+      setAnswerStatus(null)
+      setActiveModal(null)
+      setFinishedMessage(null)
+    } catch (error) {
+      setErrorMessage('다음 문제를 불러오지 못했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRetry = () => {
+    setAnswerStatus(null)
+    setActiveModal(null)
+  }
+
+  const handleCloseModal = () => {
+    setActiveModal(null)
+  }
+
+  const handleFinish = () => {
+    setActiveModal(null)
+    navigate('/')
   }
 
   const stickerText = quiz?.has_correct_attempt
@@ -107,8 +151,8 @@ const QuizPage = () => {
       <h1>Quiz</h1>
       <p>요약된 대화를 바탕으로 퀴즈를 풀어보세요.</p>
       <div className="card">
-        <button type="button" onClick={generateQuiz} disabled={loading}>
-          {loading ? '생성 중' : '퀴즈 생성'}
+        <button type="button" onClick={loadLatestQuiz} disabled={loading}>
+          {loading ? '불러오는 중' : '퀴즈 불러오기'}
         </button>
         {errorMessage && <p className="helper-text error-text">{errorMessage}</p>}
       </div>
@@ -118,43 +162,77 @@ const QuizPage = () => {
             <h2>{quiz.title}</h2>
             {stickerText && <span className={stickerClass}>{stickerText}</span>}
           </div>
-          <p className="question">{quiz.question}</p>
-          <form onSubmit={handleSubmit}>
-            <label className="label">
-              답안 입력
-              <input
-                value={answer}
-                onChange={(event) => setAnswer(event.target.value)}
-                placeholder="답을 입력하세요"
-              />
-            </label>
-            <button type="submit" disabled={submitting || !answer}>
-              {submitting ? '제출 중' : '답 제출'}
-            </button>
-          </form>
-          {resultMessage && <p className="result-message">{resultMessage}</p>}
-          <div>
-            <strong>정답:</strong> {quiz.correct}
-          </div>
-          <div>
-            <strong>오답:</strong> {quiz.wrong}
-          </div>
-          <div>
-            <strong>해설:</strong> {quiz.explanation}
-          </div>
-          <div>
-            <strong>추가 자료:</strong> {quiz.reference}
-          </div>
-          {quiz.answer_history.length > 0 && (
-            <div className="answer-history">
-              <strong>입력한 답:</strong>
-              <ul>
-                {quiz.answer_history.map((item, index) => (
-                  <li key={`${item}-${index}`}>{item}</li>
-                ))}
-              </ul>
+          <div className="quiz-question">
+            <div className="quiz-index">
+              <span className="quiz-index-label">Q1</span>
+              {answerStatus && (
+                <span className={`quiz-index-mark ${answerStatus}`}>
+                  {answerStatus === 'correct' ? 'O' : 'X'}
+                </span>
+              )}
             </div>
-          )}
+            <p className="question">Q1. {quiz.question}</p>
+          </div>
+          <ol className="quiz-options">
+            {quiz.choices.map((choice, index) => (
+              <li key={`${choice}-${index}`}>
+                <button
+                  type="button"
+                  className="quiz-option"
+                  onClick={() => handleChoiceClick(choice)}
+                  disabled={submitting}
+                >
+                  <span className="option-index">{index + 1}.</span>
+                  <span>{choice}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+      {activeModal === 'correct' && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <h3>정답입니다!</h3>
+            <p>정답을 맞혔어요. 다음 문제를 풀어볼까요?</p>
+            <div className="modal-actions">
+              <button type="button" className="secondary" onClick={handleCloseModal}>
+                닫기
+              </button>
+              <button type="button" onClick={handleNextQuiz}>
+                다음 문제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {activeModal === 'wrong' && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <h3>틀렸습니다!</h3>
+            <p>다시 한 번 도전해볼까요?</p>
+            <div className="modal-actions">
+              <button type="button" className="secondary" onClick={handleCloseModal}>
+                닫기
+              </button>
+              <button type="button" onClick={handleRetry}>
+                다시 풀기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {activeModal === 'finished' && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <h3>모두 완료!</h3>
+            <p>{finishedMessage}</p>
+            <div className="modal-actions">
+              <button type="button" onClick={handleFinish}>
+                홈으로
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>

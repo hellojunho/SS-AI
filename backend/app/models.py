@@ -70,6 +70,7 @@ class QuizQuestion(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     quiz_id: Mapped[int] = mapped_column(Integer, ForeignKey("quizzes.id"))
     question: Mapped[str] = mapped_column(Text, nullable=False)
+    choices: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     correct: Mapped[str] = mapped_column(Text, nullable=False)
     wrong: Mapped[str] = mapped_column(Text, nullable=False)
     explanation: Mapped[str] = mapped_column(Text, nullable=False)

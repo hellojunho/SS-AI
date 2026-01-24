@@ -253,7 +253,7 @@ const QuizPage = () => {
             <p>{finishedMessage}</p>
             <div className="modal-actions">
               <button type="button" onClick={handleFinish}>
-                🏠 홈으로
+                🏠
               </button>
             </div>
           </div>

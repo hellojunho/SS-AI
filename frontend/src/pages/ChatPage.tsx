@@ -195,7 +195,7 @@ const ChatPage = () => {
               이전
             </button>
             <button type="button" className="chat-nav-button" onClick={() => navigate('/')}>
-              홈
+              🏠
             </button>
           </div>
           <h1>Chat</h1>

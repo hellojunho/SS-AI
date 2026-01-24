@@ -30,11 +30,13 @@ const QuizPage = () => {
   const [finishedMessage, setFinishedMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const loadLatestQuiz = async () => {
+  const generateQuiz = async () => {
     setLoading(true)
     setErrorMessage(null)
     try {
-      const response = await authorizedFetch(`${API_BASE_URL}/quiz/latest`)
+      const response = await authorizedFetch(`${API_BASE_URL}/quiz/generate`, {
+        method: 'POST',
+      })
       if (!response.ok) {
         throw new Error('퀴즈를 가져오지 못했습니다.')
       }
@@ -146,12 +148,28 @@ const QuizPage = () => {
       ? 'sticker sticker-danger'
       : ''
 
+  const renderReference = (reference: string) => {
+    if (!reference.trim()) return null
+    const urlRegex = /(https?:\/\/[^\s]+)/g
+    const parts = reference.split(urlRegex)
+    return parts.map((part, index) => {
+      if (/^https?:\/\//.test(part)) {
+        return (
+          <a key={`${part}-${index}`} href={part} target="_blank" rel="noreferrer">
+            {part}
+          </a>
+        )
+      }
+      return <span key={`${part}-${index}`}>{part}</span>
+    })
+  }
+
   return (
     <section className="page">
       <h1>Quiz</h1>
       <p>요약된 대화를 바탕으로 퀴즈를 풀어보세요.</p>
       <div className="card">
-        <button type="button" onClick={loadLatestQuiz} disabled={loading}>
+        <button type="button" onClick={generateQuiz} disabled={loading}>
           {loading ? '불러오는 중' : '퀴즈 불러오기'}
         </button>
         {errorMessage && <p className="helper-text error-text">{errorMessage}</p>}
@@ -188,6 +206,12 @@ const QuizPage = () => {
               </li>
             ))}
           </ol>
+          {quiz.reference && (
+            <div className="quiz-reference">
+              <span className="quiz-reference-label">참고자료</span>
+              <p className="quiz-reference-content">{renderReference(quiz.reference)}</p>
+            </div>
+          )}
         </div>
       )}
       {activeModal === 'correct' && (
@@ -229,7 +253,7 @@ const QuizPage = () => {
             <p>{finishedMessage}</p>
             <div className="modal-actions">
               <button type="button" onClick={handleFinish}>
-                홈으로
+                🏠
               </button>
             </div>
           </div>

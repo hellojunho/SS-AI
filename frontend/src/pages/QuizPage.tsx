@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 
 import { authorizedFetch } from '../api'
 import { API_BASE_URL } from '../config'
@@ -86,6 +86,11 @@ const QuizPage = () => {
     }
   }
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    submitAnswer()
+  }
+
   const stickerText = quiz?.has_correct_attempt
     ? '전에 맞힌 문제에요!'
     : quiz?.has_wrong_attempt
@@ -114,17 +119,19 @@ const QuizPage = () => {
             {stickerText && <span className={stickerClass}>{stickerText}</span>}
           </div>
           <p className="question">{quiz.question}</p>
-          <label className="label">
-            답안 입력
-            <input
-              value={answer}
-              onChange={(event) => setAnswer(event.target.value)}
-              placeholder="답을 입력하세요"
-            />
-          </label>
-          <button type="button" onClick={submitAnswer} disabled={submitting || !answer}>
-            {submitting ? '제출 중' : '답 제출'}
-          </button>
+          <form onSubmit={handleSubmit}>
+            <label className="label">
+              답안 입력
+              <input
+                value={answer}
+                onChange={(event) => setAnswer(event.target.value)}
+                placeholder="답을 입력하세요"
+              />
+            </label>
+            <button type="submit" disabled={submitting || !answer}>
+              {submitting ? '제출 중' : '답 제출'}
+            </button>
+          </form>
           {resultMessage && <p className="result-message">{resultMessage}</p>}
           <div>
             <strong>정답:</strong> {quiz.correct}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { API_BASE_URL } from '../config'
@@ -69,11 +69,16 @@ const SignupPage = () => {
     }
   }
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    handleSignup()
+  }
+
   return (
     <section className="page">
       <h1>회원가입</h1>
       <p>간단한 정보 입력 후 바로 시작할 수 있어요.</p>
-      <div className="card">
+      <form className="card" onSubmit={handleSubmit}>
         <label className="label">
           아이디
           <input
@@ -108,14 +113,14 @@ const SignupPage = () => {
             placeholder="비밀번호를 입력하세요"
           />
         </label>
-        <button type="button" onClick={handleSignup} disabled={loading}>
+        <button type="submit" disabled={loading}>
           {loading ? '가입 중' : '회원가입'}
         </button>
         {message && <p className="helper-text">{message}</p>}
         <p className="helper-text">
           이미 계정이 있나요? <Link to="/">로그인</Link>
         </p>
-      </div>
+      </form>
       {showSuccessModal && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">

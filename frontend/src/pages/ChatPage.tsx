@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 
 import { authorizedFetch } from '../api'
 import { API_BASE_URL } from '../config'
@@ -8,11 +8,67 @@ type ChatEntry = {
   content: string
 }
 
+type ChatHistoryResponse = {
+  date: string
+  entries: ChatEntry[]
+  is_today: boolean
+}
+
+type ChatHistoryDatesResponse = {
+  dates: string[]
+  today: string
+}
+
 const ChatPage = () => {
   const [message, setMessage] = useState('')
   const [entries, setEntries] = useState<ChatEntry[]>([])
   const [loading, setLoading] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [historyDates, setHistoryDates] = useState<string[]>([])
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [today, setToday] = useState<string | null>(null)
+
+  const isViewingToday = useMemo(() => {
+    if (!selectedDate || !today) return true
+    return selectedDate === today
+  }, [selectedDate, today])
+
+  const loadHistoryDates = async () => {
+    const response = await authorizedFetch(`${API_BASE_URL}/chat/history`)
+    if (!response.ok) {
+      throw new Error('대화 기록을 불러오지 못했습니다.')
+    }
+    return (await response.json()) as ChatHistoryDatesResponse
+  }
+
+  const loadHistory = async (date: string) => {
+    const response = await authorizedFetch(`${API_BASE_URL}/chat/history/${date}`)
+    if (!response.ok) {
+      throw new Error('대화 기록을 불러오지 못했습니다.')
+    }
+    return (await response.json()) as ChatHistoryResponse
+  }
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      setHistoryLoading(true)
+      setErrorMessage(null)
+      try {
+        const data = await loadHistoryDates()
+        setHistoryDates(data.dates)
+        setToday(data.today)
+        setSelectedDate(data.today)
+        const history = await loadHistory(data.today)
+        setEntries(history.entries)
+      } catch (error) {
+        setErrorMessage('대화 기록을 불러오지 못했습니다. 로그인 상태를 확인해주세요.')
+      } finally {
+        setHistoryLoading(false)
+      }
+    }
+    fetchHistory()
+  }, [])
 
   const sendMessage = async () => {
     if (!message.trim()) return
@@ -32,6 +88,9 @@ const ChatPage = () => {
       }
       const data = await response.json()
       setEntries((prev) => [...prev, { role: 'gpt', content: `${data.answer}\n출처: ${data.reference}` }])
+      if (today && !historyDates.includes(today)) {
+        setHistoryDates((prev) => [today, ...prev])
+      }
     } catch (error) {
       setErrorMessage('오류가 발생했습니다. 로그인 상태를 확인해주세요.')
       setEntries((prev) => [
@@ -44,27 +103,77 @@ const ChatPage = () => {
     }
   }
 
+  const handleHistorySelect = async (date: string) => {
+    setHistoryLoading(true)
+    setErrorMessage(null)
+    try {
+      const history = await loadHistory(date)
+      setEntries(history.entries)
+      setSelectedDate(date)
+    } catch (error) {
+      setErrorMessage('대화 기록을 불러오지 못했습니다. 로그인 상태를 확인해주세요.')
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!isViewingToday) return
+    sendMessage()
+  }
+
   return (
-    <section className="page">
-      <h1>Chat</h1>
-      <p>스포츠 과학 지식을 대화로 학습하세요.</p>
-      {errorMessage && <p className="helper-text error-text">{errorMessage}</p>}
-      <div className="chat-box">
-        {entries.map((entry, index) => (
-          <div key={`${entry.role}-${index}`} className={`bubble ${entry.role}`}>
-            {entry.content}
+    <section className="page chat-page">
+      <div className="chat-layout">
+        <aside className="chat-sidebar">
+          <h2>대화 기록</h2>
+          {historyDates.length === 0 && (
+            <p className="helper-text">{historyLoading ? '기록을 불러오는 중...' : '아직 기록이 없어요.'}</p>
+          )}
+          <div className="chat-date-list">
+            {historyDates.map((date) => (
+              <button
+                key={date}
+                type="button"
+                className={`chat-date-button ${selectedDate === date ? 'active' : ''}`}
+                onClick={() => handleHistorySelect(date)}
+                disabled={historyLoading}
+              >
+                {date}
+              </button>
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="chat-input">
-        <input
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-          placeholder="질문을 입력하세요"
-        />
-        <button type="button" onClick={sendMessage} disabled={loading}>
-          {loading ? '전송 중' : '전송'}
-        </button>
+        </aside>
+        <div className="chat-main">
+          <h1>Chat</h1>
+          <p>스포츠 과학 지식을 대화로 학습하세요.</p>
+          {selectedDate && !isViewingToday && (
+            <p className="helper-text">이전 날짜의 대화 기록만 확인할 수 있어요.</p>
+          )}
+          {errorMessage && <p className="helper-text error-text">{errorMessage}</p>}
+          <div className="chat-box">
+            {entries.length === 0 && (
+              <p className="helper-text">{historyLoading ? '대화를 불러오는 중...' : '대화를 시작해보세요.'}</p>
+            )}
+            {entries.map((entry, index) => (
+              <div key={`${entry.role}-${index}`} className={`bubble ${entry.role}`}>
+                {entry.content}
+              </div>
+            ))}
+          </div>
+          <form className="chat-input" onSubmit={handleSubmit}>
+            <input
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              placeholder="질문을 입력하세요"
+              disabled={loading || !isViewingToday}
+            />
+            <button type="submit" disabled={loading || !isViewingToday}>
+              {loading ? <span className="spinner" aria-label="답변 생성 중" /> : '전송'}
+            </button>
+          </form>
+        </div>
       </div>
     </section>
   )

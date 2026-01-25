@@ -180,6 +180,7 @@ button.ghost {
   background: transparent;
   border: 1px solid #e2e8f0;
   color: #475569;
+  --button-spinner-color: #475569;
 }
 
 button.ghost:hover {
@@ -195,6 +196,7 @@ button.ghost:hover {
   color: #111827;
   font-weight: 600;
   cursor: pointer;
+  --button-spinner-color: #111827;
 }
 .link-button:hover {
   text-decoration: underline;
@@ -466,11 +468,13 @@ button {
   color: #fff;
   font-size: 14px;
   cursor: pointer;
+  --button-spinner-color: #fff;
 }
 
 button.secondary {
   background: #f3f4f6;
   color: #111827;
+  --button-spinner-color: #111827;
 }
 
 button.secondary:hover {
@@ -480,6 +484,24 @@ button.secondary:hover {
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.button-click-spinner {
+  position: relative;
+}
+
+.button-click-spinner::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: var(--button-spinner-color);
+  transform: translateY(-50%);
+  animation: spin 0.8s linear infinite;
 }
 
 .button-with-spinner {
@@ -579,6 +601,7 @@ button:disabled {
   text-align: left;
   font-size: 13px;
   cursor: pointer;
+  --button-spinner-color: #111827;
 }
 
 .chat-date-button.active {
@@ -606,6 +629,7 @@ button:disabled {
   font-size: 13px;
   cursor: pointer;
   color: #111827;
+  --button-spinner-color: #111827;
 }
 
 .chat-nav-button:hover {
@@ -673,6 +697,34 @@ button:disabled {
   border: 2px solid rgba(255, 255, 255, 0.35);
   border-top-color: #fff;
   animation: spin 0.8s linear infinite;
+}
+
+.progress-bar-wrapper {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-bar-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.progress-bar-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #111827 0%, #2563eb 100%);
+  transition: width 0.2s ease;
 }
 
 @keyframes spin {

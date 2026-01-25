@@ -215,11 +215,20 @@ const ChatPage = () => {
             ))}
           </div>
           <form className="chat-input" onSubmit={handleSubmit}>
-            <input
+            <textarea
               value={message}
               onChange={(event) => setMessage(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault()
+                  if (!loading && isViewingToday) {
+                    sendMessage()
+                  }
+                }
+              }}
               placeholder="질문을 입력하세요"
               disabled={loading || !isViewingToday}
+              rows={2}
             />
             <button type="submit" disabled={loading || !isViewingToday}>
               {loading ? <span className="spinner" aria-label="답변 생성 중" /> : '전송'}

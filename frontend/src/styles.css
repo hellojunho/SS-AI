@@ -78,17 +78,17 @@ h1 {
 }
 
 .admin-table {
-  overflow-x: auto;
+  overflow-x: hidden;
 }
 
 .admin-table-row {
   display: grid;
-  grid-template-columns: 1.1fr 1.2fr 1.6fr 0.8fr 1.2fr 1.2fr 0.7fr;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   align-items: center;
   gap: 12px;
   padding: 8px 0;
   border-bottom: 1px solid #f1f5f9;
-  min-width: 720px;
+  min-width: 0;
 }
 
 .admin-table-header {
@@ -103,6 +103,84 @@ h1 {
 .admin-table-row select {
   width: 100%;
   min-width: 0;
+}
+
+.admin-table-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-sort {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+}
+
+.admin-sort:hover {
+  color: #111827;
+}
+
+.admin-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-nav a {
+  text-decoration: none;
+  color: #111827;
+  background: #f3f4f6;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-nav a.active {
+  background: #111827;
+  color: #fff;
+}
+
+.admin-link-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.admin-link-card {
+  text-align: left;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  background: #ffffff;
+  color: #111827;
+}
+
+.admin-link-card h2 {
+  font-size: 18px;
+}
+
+.admin-filters {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.admin-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.admin-quiz-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .admin-table-empty {
@@ -167,6 +245,14 @@ input {
   font-size: 14px;
 }
 
+textarea {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  font-family: inherit;
+}
+
 button {
   padding: 10px 12px;
   border-radius: 12px;
@@ -175,6 +261,15 @@ button {
   color: #fff;
   font-size: 14px;
   cursor: pointer;
+}
+
+button.secondary {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+button.secondary:hover {
+  background: #e5e7eb;
 }
 
 button:disabled {
@@ -349,8 +444,13 @@ button:disabled {
   justify-content: center;
 }
 
-.chat-input input {
+.chat-input input,
+.chat-input textarea {
   flex: 1;
+}
+
+.chat-input textarea {
+  resize: vertical;
 }
 
 .spinner {

@@ -24,7 +24,7 @@ class LearnStatus(BaseModel):
     message: str
 
 
-DOCS_ROOT = Path(__file__).resolve().parents[2] / "ai" / "docs"
+DOCS_ROOT = Path(__file__).resolve().parents[1] / "ai" / "docs"
 DOCS_WEB_URLS = DOCS_ROOT / "web" / "urls.txt"
 DOCS_FOLDERS = {
     ".csv": "csv",
@@ -92,7 +92,7 @@ async def _run_ingest(paths: Iterable[Path], urls: Iterable[str]) -> None:
         check=True,
         capture_output=True,
         text=True,
-        cwd=Path(__file__).resolve().parents[2],
+        cwd=Path(__file__).resolve().parents[1],
     )
 
 

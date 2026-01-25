@@ -10,9 +10,10 @@ from rag_pipeline import load_index, search
 
 
 def parse_args() -> argparse.Namespace:
+    default_index_dir = Path(__file__).resolve().parent / "index"
     parser = argparse.ArgumentParser(description="문서 기반 Q&A")
     parser.add_argument("--question", required=True, help="질문")
-    parser.add_argument("--index-dir", default="ai/index", help="인덱스 경로")
+    parser.add_argument("--index-dir", default=str(default_index_dir), help="인덱스 경로")
     parser.add_argument("--top-k", type=int, default=4, help="검색 결과 수")
     return parser.parse_args()
 

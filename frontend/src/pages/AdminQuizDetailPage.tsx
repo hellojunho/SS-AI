@@ -119,11 +119,14 @@ const AdminQuizDetailPage = () => {
       {loading && <div className="card">퀴즈 정보를 불러오는 중...</div>}
       {!loading && errorMessage && <p className="helper-text error-text">{errorMessage}</p>}
       {!loading && quiz && (
-        <div className="card">
-          <div className="quiz-header">
-            <h2>{normalizeText(quiz.title)}</h2>
-            <span className="sticker">생성 대상: {quiz.source_user_id || '-'}</span>
-            <div style={{ marginLeft: 'auto' }}>
+        <div className="card admin-quiz-detail">
+          <div className="admin-quiz-detail-header">
+            <div>
+              <span className="admin-quiz-detail-label">QUIZ</span>
+              <h2>{normalizeText(quiz.title)}</h2>
+              <p className="admin-quiz-detail-meta">생성 사용자: {quiz.source_user_id || '-'}</p>
+            </div>
+            <div className="admin-quiz-detail-actions">
               <button
                 type="button"
                 onClick={async () => {
@@ -169,44 +172,43 @@ const AdminQuizDetailPage = () => {
               </button>
             </div>
           </div>
-          <div className="quiz-question">
-            <div className="quiz-index">
-              <span className="quiz-index-label">Q1</span>
+          <div className="admin-quiz-detail-question">
+            <div className="admin-quiz-detail-chip">Q1</div>
+            <p>{normalizeText(quiz.question)}</p>
+          </div>
+          <div className="admin-quiz-detail-grid">
+            <div className="admin-quiz-detail-block">
+              <span className="admin-quiz-detail-block-label">보기</span>
+              <ol className="admin-quiz-detail-list">
+                {quiz.choices.map((choice, index) => (
+                  <li key={`${choice}-${index}`}>
+                    <span className="admin-quiz-detail-list-index">{index + 1}.</span>
+                    <span>{normalizeText(choice)}</span>
+                  </li>
+                ))}
+              </ol>
             </div>
-            <p className="question">Q1. {normalizeText(quiz.question)}</p>
-          </div>
-          <ol className="quiz-options">
-            {quiz.choices.map((choice, index) => (
-              <li key={`${choice}-${index}`}>
-                <div className="quiz-option">
-                  <span className="option-index">{index + 1}.</span>
-                  <span>{normalizeText(choice)}</span>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <div className="quiz-reference">
-            <span className="quiz-reference-label">정답</span>
-            <li><p className="quiz-reference-content">{normalizeText(quiz.correct)}</p></li>
-          </div>
-          <div className="quiz-reference">
-            <span className="quiz-reference-label">오답 보기</span>
-            <ul className="quiz-reference-content">
-              {quiz.wrong.map((choice, index) => (
-                <li key={`${choice}-${index}`}>{normalizeText(choice)}</li>
-              ))}
-            </ul>
+            <div className="admin-quiz-detail-block">
+              <span className="admin-quiz-detail-block-label">정답</span>
+              <p className="admin-quiz-detail-answer">{normalizeText(quiz.correct)}</p>
+              <span className="admin-quiz-detail-block-label">오답 보기</span>
+              <ul className="admin-quiz-detail-list admin-quiz-detail-wrong">
+                {quiz.wrong.map((choice, index) => (
+                  <li key={`${choice}-${index}`}>{normalizeText(choice)}</li>
+                ))}
+              </ul>
+            </div>
           </div>
           {normalizeText(quiz.explanation) && (
-            <div className="quiz-reference">
-              <span className="quiz-reference-label">해설</span>
-              <p className="quiz-reference-content">{normalizeText(quiz.explanation)}</p>
+            <div className="admin-quiz-detail-block">
+              <span className="admin-quiz-detail-block-label">해설</span>
+              <p className="admin-quiz-detail-muted">{normalizeText(quiz.explanation)}</p>
             </div>
           )}
           {normalizeText(quiz.reference) && (
-            <div className="quiz-reference">
-              <span className="quiz-reference-label">참고자료</span>
-              <p className="quiz-reference-content">{formatReference(quiz.reference)}</p>
+            <div className="admin-quiz-detail-block">
+              <span className="admin-quiz-detail-block-label">참고자료</span>
+              <p className="admin-quiz-detail-muted">{formatReference(quiz.reference)}</p>
             </div>
           )}
         </div>

@@ -1,6 +1,8 @@
 import json
 import random
+import re
 from datetime import datetime
+from difflib import SequenceMatcher
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -151,6 +153,42 @@ def _shuffle_question_choices(question: models.QuizQuestion) -> bool:
     return True
 
 
+def _delete_quiz_records(quiz: models.Quiz, db: Session) -> None:
+    question_ids = [q.id for q in quiz.questions] if quiz.questions else []
+    if question_ids:
+        try:
+            db.query(models.WrongQuestion).filter(
+                models.WrongQuestion.quiz_question_id.in_(question_ids)
+            ).delete(synchronize_session=False)
+        except Exception:
+            pass
+    db.delete(quiz)
+
+
+def _normalize_question_text(text: str) -> str:
+    if not text:
+        return ""
+    stripped = re.sub(r"```json\s*([\s\S]*?)```", r"\1", text, flags=re.IGNORECASE)
+    stripped = re.sub(r"```([\s\S]*?)```", r"\1", stripped)
+    stripped = stripped.lower()
+    stripped = re.sub(r"[^\w\s가-힣]", " ", stripped)
+    stripped = re.sub(r"\s+", " ", stripped).strip()
+    return stripped
+
+
+def _is_similar_question(base_text: str, candidate_text: str) -> bool:
+    if not base_text or not candidate_text:
+        return False
+    if base_text == candidate_text:
+        return True
+    if base_text in candidate_text or candidate_text in base_text:
+        shorter = base_text if len(base_text) <= len(candidate_text) else candidate_text
+        if len(shorter) >= 12:
+            return True
+    similarity = SequenceMatcher(None, base_text, candidate_text).ratio()
+    return similarity >= 0.9
+
+
 @router.post("/generate", response_model=schemas.QuizResponse)
 def generate_quiz_from_summary(
     current_user: models.User = Depends(require_admin),
@@ -223,16 +261,7 @@ def admin_delete_quiz(
     quiz = db.query(models.Quiz).filter(models.Quiz.id == quiz_id).first()
     if not quiz:
         raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
-    # collect question ids to remove related WrongQuestion entries
-    question_ids = [q.id for q in quiz.questions] if quiz.questions else []
-    if question_ids:
-        try:
-            db.query(models.WrongQuestion).filter(models.WrongQuestion.quiz_question_id.in_(question_ids)).delete(synchronize_session=False)
-        except Exception:
-            # ignore if something goes wrong with wrong question cleanup
-            pass
-    # delete quiz (questions and answers are cascaded via ORM)
-    db.delete(quiz)
+    _delete_quiz_records(quiz, db)
     db.commit()
     return {"deleted": quiz_id}
 
@@ -258,6 +287,49 @@ def admin_mix_quiz_choices(
     return schemas.AdminQuizResponse(**response.model_dump(), source_user_id=source_user_id)
 
 
+@router.post("/admin/mix-all")
+def admin_mix_all_quiz_choices(
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    quizzes = db.query(models.Quiz).all()
+    mixed = 0
+    for quiz in quizzes:
+        if not quiz.questions:
+            continue
+        question = quiz.questions[0]
+        if _shuffle_question_choices(question):
+            mixed += 1
+    db.commit()
+    return {"mixed": mixed}
+
+
+@router.post("/admin/dedupe")
+def admin_dedupe_quizzes(
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    quizzes = db.query(models.Quiz).order_by(models.Quiz.created_at.asc()).all()
+    kept_questions: list[str] = []
+    removed_ids: list[int] = []
+    for quiz in quizzes:
+        if not quiz.questions:
+            continue
+        question_text = _normalize_question_text(quiz.questions[0].question)
+        if not question_text:
+            continue
+        is_duplicate = any(
+            _is_similar_question(existing, question_text) for existing in kept_questions
+        )
+        if is_duplicate:
+            removed_ids.append(quiz.id)
+            _delete_quiz_records(quiz, db)
+            continue
+        kept_questions.append(question_text)
+    db.commit()
+    return {"removed": len(removed_ids), "removed_ids": removed_ids, "kept": len(kept_questions)}
+
+
 @router.get("/latest", response_model=schemas.QuizResponse)
 def latest_quiz(
     current_user: models.User = Depends(get_current_user),
@@ -269,6 +341,17 @@ def latest_quiz(
         .order_by(models.Quiz.created_at.desc())
         .first()
     )
+    if not quiz:
+        raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
+    return _quiz_to_response(quiz, current_user=current_user, db=db)
+
+
+@router.get("/all/first", response_model=schemas.QuizResponse)
+def first_quiz_all(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    quiz = db.query(models.Quiz).order_by(models.Quiz.created_at.asc()).first()
     if not quiz:
         raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
     return _quiz_to_response(quiz, current_user=current_user, db=db)

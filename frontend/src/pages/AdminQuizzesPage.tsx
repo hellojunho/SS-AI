@@ -37,6 +37,11 @@ const AdminQuizzesPage = () => {
   const [mixingAll, setMixingAll] = useState(false)
   const [deduping, setDeduping] = useState(false)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
+  const [targetUserId, setTargetUserId] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [generatingAll, setGeneratingAll] = useState(false)
+  const [generateMessage, setGenerateMessage] = useState<string | null>(null)
+  const [generateError, setGenerateError] = useState<string | null>(null)
 
   const fetchQuizzes = async () => {
     setLoading(true)
@@ -137,6 +142,89 @@ const AdminQuizzesPage = () => {
       <h1>퀴즈 대시보드</h1>
       <p>생성된 퀴즈 목록을 확인하고 특정 사용자의 퀴즈를 검토할 수 있습니다.</p>
       <AdminNav />
+
+      <form
+        className="card admin-actions"
+        onSubmit={async (event) => {
+          event.preventDefault()
+          const trimmed = targetUserId.trim()
+          if (!trimmed) {
+            setGenerateError('사용자 아이디를 입력해주세요.')
+            return
+          }
+          setGenerating(true)
+          setGenerateMessage(null)
+          setGenerateError(null)
+          try {
+            const res = await authorizedFetch(`${API_BASE_URL}/quiz/admin/generate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: trimmed }),
+            })
+            if (!res.ok) {
+              const data = (await res.json().catch(() => null)) as { detail?: string } | null
+              throw new Error(data?.detail || '퀴즈를 생성하지 못했습니다.')
+            }
+            const data = (await res.json()) as QuizItem
+            setGenerateMessage(`사용자 ${data.source_user_id || trimmed} 대상 퀴즈를 생성했습니다.`)
+            setTargetUserId('')
+            fetchQuizzes()
+          } catch (err) {
+            const message = err instanceof Error ? err.message : '퀴즈를 생성하지 못했습니다.'
+            setGenerateError(message)
+          } finally {
+            setGenerating(false)
+          }
+        }}
+      >
+        <div>
+          <h3>퀴즈 생성</h3>
+          <p className="helper-text">사용자 대화 기록으로 새로운 퀴즈를 생성합니다.</p>
+        </div>
+        <label className="label">
+          사용자 ID
+          <input
+            value={targetUserId}
+            onChange={(event) => setTargetUserId(event.target.value)}
+            placeholder="사용자 아이디를 입력하세요"
+          />
+        </label>
+        <div className="admin-actions-buttons">
+          <button type="submit" disabled={generating || generatingAll}>
+            {generating ? '생성 중...' : '퀴즈 생성'}
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            onClick={async () => {
+              setGeneratingAll(true)
+              setGenerateMessage(null)
+              setGenerateError(null)
+              try {
+                const res = await authorizedFetch(`${API_BASE_URL}/quiz/admin/generate-all`, { method: 'POST' })
+                if (!res.ok) {
+                  const data = (await res.json().catch(() => null)) as { detail?: string } | null
+                  throw new Error(data?.detail || '퀴즈를 생성하지 못했습니다.')
+                }
+                const data = (await res.json()) as { created: number; failed: { user_id: string; reason: string }[] }
+                const failedCount = data.failed?.length ?? 0
+                setGenerateMessage(`전체 퀴즈 ${data.created}개 생성, 실패 ${failedCount}개`)
+                fetchQuizzes()
+              } catch (err) {
+                const message = err instanceof Error ? err.message : '퀴즈를 생성하지 못했습니다.'
+                setGenerateError(message)
+              } finally {
+                setGeneratingAll(false)
+              }
+            }}
+            disabled={generating || generatingAll}
+          >
+            {generatingAll ? '전체 생성 중...' : '전체 생성'}
+          </button>
+        </div>
+        {generateMessage && <p className="helper-text">{generateMessage}</p>}
+        {generateError && <p className="helper-text error-text">{generateError}</p>}
+      </form>
 
       <div className="card admin-actions">
         <div>

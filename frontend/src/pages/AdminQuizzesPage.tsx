@@ -1,5 +1,6 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+
 import AdminNav from '../components/AdminNav'
 import { authorizedFetch } from '../api'
 import { API_BASE_URL } from '../config'
@@ -7,15 +8,14 @@ import { useAdminStatus } from '../hooks/useAdminStatus'
 
 type QuizItem = {
   id: number
-  user_id: string
-  created_at: string
-  summary: string
-  title: string | null
+  title: string
+  question: string
+  source_user_id: string
 }
 
 const PAGE_SIZE = 10
 
-type SortKey = 'id' | 'user_id' | 'title' | 'created_at'
+type SortKey = 'id' | 'title' | 'source_user_id' | 'question'
 
 type SortConfig = {
   key: SortKey
@@ -29,7 +29,9 @@ const AdminQuizzesPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'created_at', direction: 'desc' })
+  const [searchTitle, setSearchTitle] = useState('')
+  const [searchUser, setSearchUser] = useState('')
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'id', direction: 'desc' })
 
   useEffect(() => {
     if (status !== 'allowed') return
@@ -37,7 +39,7 @@ const AdminQuizzesPage = () => {
       setLoading(true)
       setError(null)
       try {
-        const res = await authorizedFetch(`${API_BASE_URL}/admin/quizzes`)
+        const res = await authorizedFetch(`${API_BASE_URL}/quiz/admin/list`)
         if (!res.ok) throw new Error('퀴즈를 불러오지 못했습니다.')
         const data = (await res.json()) as QuizItem[]
         setQuizzes(data)
@@ -52,7 +54,7 @@ const AdminQuizzesPage = () => {
 
   useEffect(() => {
     setPage(1)
-  }, [sortConfig])
+  }, [sortConfig, searchTitle, searchUser])
 
   const handleSort = (key: SortKey) => {
     setSortConfig((prev) => (prev.key === key ? { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' } : { key, direction: 'asc' }))
@@ -63,28 +65,36 @@ const AdminQuizzesPage = () => {
     return sortConfig.direction === 'asc' ? '▲' : '▼'
   }
 
+  const normalizeText = (value: string) => {
+    if (!value) return value
+    const stripped = value
+      .replace(/```json\s*([\s\S]*?)```/gi, '$1')
+      .replace(/```\s*([\s\S]*?)```/g, '$1')
+    return stripped.trim()
+  }
+
   const filtered = useMemo(() => {
+    const titleQuery = searchTitle.trim().toLowerCase()
+    const userQuery = searchUser.trim().toLowerCase()
+    const filteredItems = quizzes.filter((quiz) => {
+      const title = normalizeText(quiz.title).toLowerCase()
+      const userId = (quiz.source_user_id || '').toLowerCase()
+      const matchesTitle = titleQuery ? title.includes(titleQuery) : true
+      const matchesUser = userQuery ? userId.includes(userQuery) : true
+      return matchesTitle && matchesUser
+    })
     const multiplier = sortConfig.direction === 'asc' ? 1 : -1
-    const arr = [...quizzes].sort((a, b) => {
-      const va: any = a[sortConfig.key as keyof QuizItem] ?? ''
-      const vb: any = b[sortConfig.key as keyof QuizItem] ?? ''
-      if (sortConfig.key === 'created_at') {
-        return (new Date(va).getTime() - new Date(vb).getTime()) * multiplier
-      }
-      return String(va).localeCompare(String(vb), 'ko', { sensitivity: 'base' }) * multiplier
+    const arr = [...filteredItems].sort((a, b) => {
+      const valueA = normalizeText(String(a[sortConfig.key as keyof QuizItem] ?? ''))
+      const valueB = normalizeText(String(b[sortConfig.key as keyof QuizItem] ?? ''))
+      return valueA.localeCompare(valueB, 'ko', { sensitivity: 'base' }) * multiplier
     })
     return arr
-  }, [quizzes, sortConfig])
+  }, [quizzes, searchTitle, searchUser, sortConfig])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
   const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
-
-  const formatDate = (value: string) => {
-    const d = new Date(value)
-    if (Number.isNaN(d.getTime())) return value
-    return d.toLocaleString('ko-KR')
-  }
 
   if (status === 'loading') {
     return (
@@ -115,14 +125,41 @@ const AdminQuizzesPage = () => {
       <p>생성된 퀴즈 목록을 확인하고 특정 사용자의 퀴즈를 검토할 수 있습니다.</p>
       <AdminNav />
 
+      <div className="card admin-filters">
+        <label className="label">
+          퀴즈 제목 검색
+          <input
+            value={searchTitle}
+            onChange={(event) => setSearchTitle(event.target.value)}
+            placeholder="퀴즈 제목을 입력하세요"
+          />
+        </label>
+        <label className="label">
+          생성 사용자 검색
+          <input
+            value={searchUser}
+            onChange={(event) => setSearchUser(event.target.value)}
+            placeholder="사용자 아이디를 입력하세요"
+          />
+        </label>
+      </div>
+      <label className="label" style={{ alignItems: 'flex-end' }}>
+        <button type="button" onClick={() => {
+          setSearchTitle('')
+          setSearchUser('')
+        }}>
+          초기화
+        </button>
+      </label>
+
       <div className="admin-dashboard admin-compact">
         <div className="card admin-table">
           <div className="admin-table-row admin-table-header">
             <span>INDEX</span>
             <button type="button" className="admin-sort" onClick={() => handleSort('id')}>ID {renderSortIndicator('id')}</button>
-            <button type="button" className="admin-sort" onClick={() => handleSort('user_id')}>사용자 {renderSortIndicator('user_id')}</button>
             <button type="button" className="admin-sort" onClick={() => handleSort('title')}>제목 {renderSortIndicator('title')}</button>
-            <button type="button" className="admin-sort" onClick={() => handleSort('created_at')}>생성일 {renderSortIndicator('created_at')}</button>
+            <button type="button" className="admin-sort" onClick={() => handleSort('source_user_id')}>생성 사용자 {renderSortIndicator('source_user_id')}</button>
+            <button type="button" className="admin-sort" onClick={() => handleSort('question')}>문항 {renderSortIndicator('question')}</button>
             <span>관리</span>
           </div>
 
@@ -135,11 +172,11 @@ const AdminQuizzesPage = () => {
               <div key={q.id} className="admin-table-row">
                 <span>{(currentPage - 1) * PAGE_SIZE + idx + 1}</span>
                 <span>{q.id}</span>
-                <span>{q.user_id}</span>
                 <button type="button" className="link-button" onClick={() => navigate(`/admin/quizzes/${q.id}`)}>
-                  {q.title ?? q.summary}
+                  {normalizeText(q.title)}
                 </button>
-                <span>{formatDate(q.created_at)}</span>
+                <span>{q.source_user_id || '-'}</span>
+                <span>{normalizeText(q.question)}</span>
                 <button type="button" onClick={() => navigate(`/admin/quizzes/${q.id}`)}>상세</button>
               </div>
             ))

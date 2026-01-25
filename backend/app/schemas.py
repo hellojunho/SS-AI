@@ -145,6 +145,17 @@ class AdminQuizResponse(QuizResponse):
     source_user_id: str
 
 
+class AdminQuizJobResponse(BaseModel):
+    job_id: str
+
+
+class AdminQuizJobStatus(BaseModel):
+    status: str
+    progress: int
+    result: dict | None = None
+    error: str | None = None
+
+
 class AdminUserUpdate(BaseModel):
     user_name: str | None = None
     email: EmailStr | None = None

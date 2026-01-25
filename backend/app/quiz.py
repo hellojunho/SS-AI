@@ -4,13 +4,16 @@ import re
 from datetime import datetime
 from difflib import SequenceMatcher
 from pathlib import Path
+from threading import Lock, Thread
+from typing import Callable
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from . import models, schemas
 from .auth import get_current_user, require_admin
-from .db import get_db
+from .db import SessionLocal, get_db
 from .services import generate_quiz, summarize_chat
 
 router = APIRouter(prefix="/quiz", tags=["quiz"])
@@ -18,6 +21,36 @@ router = APIRouter(prefix="/quiz", tags=["quiz"])
 BASE_DIR = Path(__file__).resolve().parents[1]
 SUMMARY_DIR = BASE_DIR / "chat" / "summation"
 RECORD_DIR = BASE_DIR / "chat" / "record"
+
+_job_lock = Lock()
+_job_store: dict[str, dict[str, object]] = {}
+
+
+def _create_job() -> str:
+    job_id = uuid4().hex
+    with _job_lock:
+        _job_store[job_id] = {"status": "pending", "progress": 0, "result": None, "error": None}
+    return job_id
+
+
+def _update_job(job_id: str, **updates: object) -> None:
+    with _job_lock:
+        if job_id not in _job_store:
+            return
+        _job_store[job_id].update(updates)
+
+
+def _set_job_progress(job_id: str, progress: int) -> None:
+    clamped = max(0, min(100, progress))
+    _update_job(job_id, progress=clamped)
+
+
+def _get_job(job_id: str) -> dict[str, object] | None:
+    with _job_lock:
+        job = _job_store.get(job_id)
+        if not job:
+            return None
+        return dict(job)
 
 
 def _latest_record_file(user_id: str) -> Path | None:
@@ -93,20 +126,28 @@ def _get_existing_question_texts(db: Session) -> list[str]:
     return normalized_questions
 
 
-def _generate_quiz_for_user(target_user: models.User, db: Session) -> models.Quiz:
+def _generate_quiz_for_user(
+    target_user: models.User,
+    db: Session,
+    progress_callback: Callable[[int], None] | None = None,
+) -> models.Quiz:
     record_file = _latest_record_file(target_user.user_id)
     if not record_file or not record_file.exists():
         raise HTTPException(status_code=404, detail="대화 기록이 없습니다.")
     content = record_file.read_text(encoding="utf-8")
+    if progress_callback:
+        progress_callback(5)
     summary_date = datetime.utcnow()
     summary = summarize_chat(content, summary_date)
+    if progress_callback:
+        progress_callback(20)
 
     existing_questions = _get_existing_question_texts(db)
     attempts = 5
     duplicate_attempts = 0
     invalid_attempts = 0
     quiz_payloads: list[dict[str, object]] = []
-    for _ in range(attempts):
+    for attempt_index in range(attempts):
         candidate_payloads = generate_quiz(summary)
         for candidate_payload in candidate_payloads:
             if len(quiz_payloads) >= 5:
@@ -126,6 +167,8 @@ def _generate_quiz_for_user(target_user: models.User, db: Session) -> models.Qui
             existing_questions.append(normalized_question)
         if len(quiz_payloads) >= 3:
             break
+        if progress_callback:
+            progress_callback(20 + int(((attempt_index + 1) / attempts) * 40))
 
     if not quiz_payloads:
         if duplicate_attempts and duplicate_attempts + invalid_attempts == attempts:
@@ -191,6 +234,8 @@ def _generate_quiz_for_user(target_user: models.User, db: Session) -> models.Qui
     db.commit()
     for quiz in created_quizzes:
         db.refresh(quiz)
+    if progress_callback:
+        progress_callback(90)
     return created_quizzes[0]
 
 
@@ -249,7 +294,7 @@ def generate_quiz_from_summary(
     return _quiz_to_response(quiz, current_user=current_user, db=db)
 
 
-@router.post("/admin/generate", response_model=schemas.AdminQuizResponse)
+@router.post("/admin/generate", response_model=schemas.AdminQuizJobResponse)
 def admin_generate_quiz(
     payload: schemas.AdminQuizGenerateRequest,
     current_user: models.User = Depends(require_admin),
@@ -260,28 +305,78 @@ def admin_generate_quiz(
     )
     if not target_user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
-    quiz = _generate_quiz_for_user(target_user, db)
-    response = _quiz_to_response(quiz, current_user=current_user, db=db)
-    return schemas.AdminQuizResponse(**response.model_dump(), source_user_id=target_user.user_id)
+    job_id = _create_job()
+
+    def _task() -> None:
+        _update_job(job_id, status="running")
+        job_db = SessionLocal()
+        try:
+            admin_user = job_db.query(models.User).filter(models.User.id == current_user.id).first()
+            target = job_db.query(models.User).filter(models.User.user_id == payload.user_id).first()
+            if not target:
+                raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+
+            def _report(progress: int) -> None:
+                _set_job_progress(job_id, progress)
+
+            quiz = _generate_quiz_for_user(target, job_db, progress_callback=_report)
+            response = _quiz_to_response(quiz, current_user=admin_user, db=job_db)
+            result = schemas.AdminQuizResponse(**response.model_dump(), source_user_id=target.user_id)
+            _update_job(job_id, status="completed", progress=100, result=result.model_dump())
+        except HTTPException as exc:
+            _update_job(job_id, status="failed", progress=100, error=str(exc.detail))
+        except Exception as exc:
+            _update_job(job_id, status="failed", progress=100, error=str(exc))
+        finally:
+            job_db.close()
+
+    Thread(target=_task, daemon=True).start()
+    return {"job_id": job_id}
 
 
-@router.post("/admin/generate-all")
+@router.post("/admin/generate-all", response_model=schemas.AdminQuizJobResponse)
 def admin_generate_all(
     current_user: models.User = Depends(require_admin), db: Session = Depends(get_db)
 ):
     users = db.query(models.User).all()
-    created = 0
-    failed: list[dict[str, str]] = []
-    for user in users:
+    job_id = _create_job()
+
+    def _task() -> None:
+        _update_job(job_id, status="running")
+        job_db = SessionLocal()
+        created = 0
+        failed: list[dict[str, str]] = []
         try:
-            _generate_quiz_for_user(user, db)
-            created += 1
-        except HTTPException as exc:
-            # skip users without records or other expected errors
-            failed.append({"user_id": user.user_id, "reason": str(exc.detail)})
+            total = len(users)
+            for index, user in enumerate(users):
+                try:
+                    _generate_quiz_for_user(user, job_db)
+                    created += 1
+                except HTTPException as exc:
+                    failed.append({"user_id": user.user_id, "reason": str(exc.detail)})
+                except Exception as exc:
+                    failed.append({"user_id": user.user_id, "reason": str(exc)})
+                progress = int(((index + 1) / max(total, 1)) * 100)
+                _set_job_progress(job_id, progress)
+            _update_job(job_id, status="completed", progress=100, result={"created": created, "failed": failed})
         except Exception as exc:
-            failed.append({"user_id": user.user_id, "reason": str(exc)})
-    return {"created": created, "failed": failed}
+            _update_job(job_id, status="failed", progress=100, error=str(exc))
+        finally:
+            job_db.close()
+
+    Thread(target=_task, daemon=True).start()
+    return {"job_id": job_id}
+
+
+@router.get("/admin/generate/status/{job_id}", response_model=schemas.AdminQuizJobStatus)
+def admin_generate_status(
+    job_id: str,
+    current_user: models.User = Depends(require_admin),
+):
+    job = _get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="작업을 찾을 수 없습니다.")
+    return job
 
 
 @router.get("/admin/list", response_model=list[schemas.AdminQuizResponse])

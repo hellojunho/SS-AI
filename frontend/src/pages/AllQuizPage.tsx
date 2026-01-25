@@ -34,7 +34,7 @@ const AllQuizPage = () => {
     setLoading(true)
     setErrorMessage(null)
     try {
-      const response = await authorizedFetch(`${API_BASE_URL}/quiz/all/latest`)
+      const response = await authorizedFetch(`${API_BASE_URL}/quiz/all/first`)
       if (!response.ok) {
         throw new Error('퀴즈를 가져오지 못했습니다.')
       }

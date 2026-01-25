@@ -34,24 +34,28 @@ const AdminQuizzesPage = () => {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'id', direction: 'desc' })
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [mixingId, setMixingId] = useState<number | null>(null)
+  const [mixingAll, setMixingAll] = useState(false)
+  const [deduping, setDeduping] = useState(false)
+  const [actionMessage, setActionMessage] = useState<string | null>(null)
+
+  const fetchQuizzes = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await authorizedFetch(`${API_BASE_URL}/quiz/admin/list`)
+      if (!res.ok) throw new Error('퀴즈를 불러오지 못했습니다.')
+      const data = (await res.json()) as QuizItem[]
+      setQuizzes(data)
+    } catch (err) {
+      setError('퀴즈를 불러오지 못했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (status !== 'allowed') return
-    const load = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const res = await authorizedFetch(`${API_BASE_URL}/quiz/admin/list`)
-        if (!res.ok) throw new Error('퀴즈를 불러오지 못했습니다.')
-        const data = (await res.json()) as QuizItem[]
-        setQuizzes(data)
-      } catch (err) {
-        setError('퀴즈를 불러오지 못했습니다.')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
+    fetchQuizzes()
   }, [status])
 
   useEffect(() => {
@@ -133,6 +137,71 @@ const AdminQuizzesPage = () => {
       <h1>퀴즈 대시보드</h1>
       <p>생성된 퀴즈 목록을 확인하고 특정 사용자의 퀴즈를 검토할 수 있습니다.</p>
       <AdminNav />
+
+      <div className="card admin-actions">
+        <div>
+          <h3>전체 관리</h3>
+          <p className="helper-text">모든 퀴즈의 보기를 섞거나 유사 문항을 정리합니다.</p>
+        </div>
+        <div className="admin-actions-buttons">
+          <button
+            type="button"
+            onClick={async () => {
+              setMixingAll(true)
+              setActionMessage(null)
+              setError(null)
+              try {
+                const res = await authorizedFetch(`${API_BASE_URL}/quiz/admin/mix-all`, { method: 'POST' })
+                if (!res.ok) throw new Error('mix-all 실패')
+                const data = (await res.json()) as { mixed: number }
+                setActionMessage(`모든 퀴즈 보기 ${data.mixed}개를 섞었습니다.`)
+              } catch (err) {
+                setError('전체 보기를 섞지 못했습니다.')
+              } finally {
+                setMixingAll(false)
+              }
+            }}
+            disabled={mixingAll}
+          >
+            {mixingAll ? 'Mix All 진행 중...' : 'Mix All'}
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            onClick={async () => {
+              if (!confirm('모든 퀴즈에서 유사한 문제를 제거할까요?')) return
+              setDeduping(true)
+              setActionMessage(null)
+              setError(null)
+              try {
+                const res = await authorizedFetch(`${API_BASE_URL}/quiz/admin/dedupe`, { method: 'POST' })
+                if (!res.ok) throw new Error('dedupe 실패')
+                const data = (await res.json()) as { removed: number; removed_ids: number[] }
+                setQuizzes((prev) => prev.filter((item) => !data.removed_ids.includes(item.id)))
+                setActionMessage(`중복/유사 문항 ${data.removed}개를 정리했습니다.`)
+              } catch (err) {
+                setError('중복 문항을 제거하지 못했습니다.')
+              } finally {
+                setDeduping(false)
+              }
+            }}
+            disabled={deduping}
+          >
+            {deduping ? '중복 제거 중...' : '중복 제거'}
+          </button>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => {
+              fetchQuizzes()
+              setActionMessage(null)
+            }}
+          >
+            목록 새로고침
+          </button>
+        </div>
+        {actionMessage && <p className="helper-text">{actionMessage}</p>}
+      </div>
 
       <div className="card admin-filters">
         <label className="label">

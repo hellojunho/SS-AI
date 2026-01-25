@@ -11,6 +11,9 @@ const AdminNav = () => (
     <NavLink to="/admin/users" className={({ isActive }) => (isActive ? 'active' : '')}>
       사용자 대시보드
     </NavLink>
+    <NavLink to="/admin/docs" className={({ isActive }) => (isActive ? 'active' : '')}>
+      문서 학습
+    </NavLink>
   </nav>
 )
 

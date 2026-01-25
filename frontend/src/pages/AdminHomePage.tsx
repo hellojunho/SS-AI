@@ -54,6 +54,10 @@ const AdminHomePage = () => {
           <h2>사용자 대시보드</h2>
           <p>사용자 계정 정보를 검색하고 수정할 수 있습니다.</p>
         </button>
+        <button type="button" className="card admin-link-card" onClick={() => navigate('/admin/docs')}>
+          <h2>문서 학습</h2>
+          <p>문서를 업로드하고 AI 학습을 실행할 수 있습니다.</p>
+        </button>
       </div>
     </section>
   )

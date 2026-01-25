@@ -14,6 +14,7 @@ import AdminUserEditPage from './pages/AdminUserEditPage'
 import AllQuizPage from './pages/AllQuizPage'
 import QuizPage from './pages/QuizPage'
 import SignupPage from './pages/SignupPage'
+import AdminDocsPage from './pages/AdminDocsPage'
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated())
@@ -70,6 +71,7 @@ const App = () => {
             element={isLoggedIn ? <AdminUsersPage /> : <Navigate to="/" />}
           />
           <Route path="/admin/users/:id" element={isLoggedIn ? <AdminUserEditPage /> : <Navigate to="/" />} />
+          <Route path="/admin/docs" element={isLoggedIn ? <AdminDocsPage /> : <Navigate to="/" />} />
         </Routes>
       </main>
       {isLoggedIn && <BottomNav />}

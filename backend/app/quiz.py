@@ -1,4 +1,5 @@
 import json
+import random
 from datetime import datetime
 from pathlib import Path
 
@@ -112,12 +113,42 @@ def _generate_quiz_for_user(target_user: models.User, db: Session) -> models.Qui
     )
     db.add(quiz)
     db.add(question)
+    db.flush()
+    if question.correct:
+        db.add(
+            models.QuizCorrect(
+                quiz_id=quiz.id,
+                quiz_question_id=question.id,
+                answer_text=question.correct,
+            )
+        )
+    wrong_list = quiz_payload.get("wrong", [])
+    if isinstance(wrong_list, list):
+        for wrong_answer in wrong_list:
+            if not wrong_answer:
+                continue
+            db.add(
+                models.QuizWrong(
+                    quiz_id=quiz.id,
+                    quiz_question_id=question.id,
+                    answer_text=str(wrong_answer),
+                )
+            )
     db.commit()
     db.refresh(quiz)
     quiz.title = f"quiz{quiz.id}"
     db.commit()
     db.refresh(quiz)
     return quiz
+
+
+def _shuffle_question_choices(question: models.QuizQuestion) -> bool:
+    choices = _parse_choices(question.choices)
+    if not choices:
+        return False
+    random.shuffle(choices)
+    question.choices = json.dumps(choices, ensure_ascii=False)
+    return True
 
 
 @router.post("/generate", response_model=schemas.QuizResponse)
@@ -206,6 +237,27 @@ def admin_delete_quiz(
     return {"deleted": quiz_id}
 
 
+@router.post("/admin/{quiz_id}/mix", response_model=schemas.AdminQuizResponse)
+def admin_mix_quiz_choices(
+    quiz_id: int,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    quiz = db.query(models.Quiz).filter(models.Quiz.id == quiz_id).first()
+    if not quiz:
+        raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
+    if not quiz.questions:
+        raise HTTPException(status_code=404, detail="퀴즈 문항을 찾을 수 없습니다.")
+    question = quiz.questions[0]
+    if not _shuffle_question_choices(question):
+        raise HTTPException(status_code=400, detail="섞을 선택지가 없습니다.")
+    db.commit()
+    db.refresh(quiz)
+    response = _quiz_to_response(quiz, current_user=current_user, db=db)
+    source_user_id = quiz.user.user_id if quiz.user else ""
+    return schemas.AdminQuizResponse(**response.model_dump(), source_user_id=source_user_id)
+
+
 @router.get("/latest", response_model=schemas.QuizResponse)
 def latest_quiz(
     current_user: models.User = Depends(get_current_user),
@@ -217,6 +269,17 @@ def latest_quiz(
         .order_by(models.Quiz.created_at.desc())
         .first()
     )
+    if not quiz:
+        raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
+    return _quiz_to_response(quiz, current_user=current_user, db=db)
+
+
+@router.get("/all/latest", response_model=schemas.QuizResponse)
+def latest_quiz_all(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    quiz = db.query(models.Quiz).order_by(models.Quiz.created_at.desc()).first()
     if not quiz:
         raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
     return _quiz_to_response(quiz, current_user=current_user, db=db)
@@ -239,6 +302,23 @@ def next_quiz(
     return _quiz_to_response(quiz, current_user=current_user, db=db)
 
 
+@router.get("/all/next", response_model=schemas.QuizResponse)
+def next_quiz_all(
+    current_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    quiz = (
+        db.query(models.Quiz)
+        .filter(models.Quiz.id > current_id)
+        .order_by(models.Quiz.id.asc())
+        .first()
+    )
+    if not quiz:
+        raise HTTPException(status_code=404, detail="다음 퀴즈가 없습니다.")
+    return _quiz_to_response(quiz, current_user=current_user, db=db)
+
+
 @router.get("/prev", response_model=schemas.QuizResponse)
 def prev_quiz(
     current_id: int,
@@ -248,6 +328,23 @@ def prev_quiz(
     quiz = (
         db.query(models.Quiz)
         .filter(models.Quiz.user_id == current_user.id, models.Quiz.id < current_id)
+        .order_by(models.Quiz.id.desc())
+        .first()
+    )
+    if not quiz:
+        raise HTTPException(status_code=404, detail="이전 퀴즈가 없습니다.")
+    return _quiz_to_response(quiz, current_user=current_user, db=db)
+
+
+@router.get("/all/prev", response_model=schemas.QuizResponse)
+def prev_quiz_all(
+    current_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    quiz = (
+        db.query(models.Quiz)
+        .filter(models.Quiz.id < current_id)
         .order_by(models.Quiz.id.desc())
         .first()
     )

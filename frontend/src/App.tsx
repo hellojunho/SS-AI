@@ -11,6 +11,7 @@ import AdminQuizDetailPage from './pages/AdminQuizDetailPage'
 import AdminQuizzesPage from './pages/AdminQuizzesPage'
 import AdminUsersPage from './pages/AdminUsersPage'
 import AdminUserEditPage from './pages/AdminUserEditPage'
+import AllQuizPage from './pages/AllQuizPage'
 import QuizPage from './pages/QuizPage'
 import SignupPage from './pages/SignupPage'
 
@@ -36,6 +37,7 @@ const App = () => {
           <Route path="/mypage" element={isLoggedIn ? <MyPage /> : <Navigate to="/" />} />
           <Route path="/chat" element={isLoggedIn ? <ChatPage /> : <Navigate to="/" />} />
           <Route path="/quiz" element={isLoggedIn ? <QuizPage /> : <Navigate to="/" />} />
+          <Route path="/quiz/all" element={isLoggedIn ? <AllQuizPage /> : <Navigate to="/" />} />
           <Route path="/admin" element={isLoggedIn ? <AdminHomePage /> : <Navigate to="/" />} />
           <Route
             path="/admin/quizzes"

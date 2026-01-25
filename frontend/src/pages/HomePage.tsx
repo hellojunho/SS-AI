@@ -87,6 +87,10 @@ const HomePage = () => {
             <span className="banner-title">퀴즈 도전하기</span>
             <span className="banner-desc">오늘의 실력을 빠르게 점검해요.</span>
           </Link>
+          <Link to="/quiz/all" className="banner-card">
+            <span className="banner-title">전체 문제 풀기</span>
+            <span className="banner-desc">모든 사용자의 퀴즈에 도전해보세요.</span>
+          </Link>
           <Link to="/mypage" className="banner-card banner-dark">
             <span className="banner-title">마이페이지 보기</span>
             <span className="banner-desc">학습 기록과 성과를 확인하세요.</span>

@@ -79,11 +79,47 @@ class QuizQuestion(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     quiz = relationship("Quiz", back_populates="questions")
+    correct_entries = relationship(
+        "QuizCorrect",
+        back_populates="question",
+        cascade="all, delete-orphan",
+    )
+    wrong_entries = relationship(
+        "QuizWrong",
+        back_populates="question",
+        cascade="all, delete-orphan",
+    )
     answers = relationship(
         "QuizAnswer",
         back_populates="question",
         cascade="all, delete-orphan",
     )
+
+
+class QuizCorrect(Base):
+    __tablename__ = "quiz_corrects"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    quiz_id: Mapped[int] = mapped_column(Integer, ForeignKey("quizzes.id"))
+    quiz_question_id: Mapped[int] = mapped_column(Integer, ForeignKey("quiz_questions.id"))
+    answer_text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    quiz = relationship("Quiz")
+    question = relationship("QuizQuestion", back_populates="correct_entries")
+
+
+class QuizWrong(Base):
+    __tablename__ = "quiz_wrongs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    quiz_id: Mapped[int] = mapped_column(Integer, ForeignKey("quizzes.id"))
+    quiz_question_id: Mapped[int] = mapped_column(Integer, ForeignKey("quiz_questions.id"))
+    answer_text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    quiz = relationship("Quiz")
+    question = relationship("QuizQuestion", back_populates="wrong_entries")
 
 
 class QuizAnswer(Base):

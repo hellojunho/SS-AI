@@ -32,6 +32,16 @@ const AdminUsersPage = () => {
   const [usersLoading, setUsersLoading] = useState(false)
   const [usersError, setUsersError] = useState<string | null>(null)
   const [updatingUserId, setUpdatingUserId] = useState<number | null>(null)
+  const [deletingUserId, setDeletingUserId] = useState<number | null>(null)
+  const [createLoading, setCreateLoading] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [createForm, setCreateForm] = useState({
+    user_id: '',
+    user_name: '',
+    email: '',
+    password: '',
+    role: 'general',
+  })
   
   const [searchId, setSearchId] = useState('')
   const [searchEmail, setSearchEmail] = useState('')
@@ -101,6 +111,58 @@ const AdminUsersPage = () => {
       setUsersError('사용자 정보를 수정하지 못했습니다. 입력값을 확인해주세요.')
     } finally {
       setUpdatingUserId(null)
+    }
+  }
+
+  const handleCreateUser = async () => {
+    if (createLoading) return
+    setCreateLoading(true)
+    setCreateError(null)
+    try {
+      const response = await authorizedFetch(`${API_BASE_URL}/auth/admin/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(createForm),
+      })
+      if (!response.ok) {
+        throw new Error('사용자 생성을 완료하지 못했습니다.')
+      }
+      const created = (await response.json()) as AdminUser
+      setUsers((prev) => [created, ...prev])
+      setCreateForm({
+        user_id: '',
+        user_name: '',
+        email: '',
+        password: '',
+        role: 'general',
+      })
+    } catch (error) {
+      setCreateError('사용자 생성을 완료하지 못했습니다. 입력값을 확인해주세요.')
+    } finally {
+      setCreateLoading(false)
+    }
+  }
+
+  const handleDeleteUser = async (user: AdminUser) => {
+    if (deletingUserId) return
+    const confirmed = window.confirm(`${user.user_id} 사용자를 삭제할까요?`)
+    if (!confirmed) return
+    setDeletingUserId(user.id)
+    setUsersError(null)
+    try {
+      const response = await authorizedFetch(`${API_BASE_URL}/auth/admin/users/${user.id}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) {
+        throw new Error('사용자를 삭제하지 못했습니다.')
+      }
+      setUsers((prev) => prev.filter((item) => item.id !== user.id))
+    } catch (error) {
+      setUsersError('사용자를 삭제하지 못했습니다.')
+    } finally {
+      setDeletingUserId(null)
     }
   }
 
@@ -190,6 +252,60 @@ const AdminUsersPage = () => {
       <h1>사용자 대시보드</h1>
       <p>사용자 정보를 검색하고 계정 정보를 관리할 수 있습니다.</p>
       <AdminNav />
+      <div className="card admin-user-create">
+        <h2>사용자 생성</h2>
+        <div className="admin-user-create-grid">
+          <label className="label">
+            사용자 ID
+            <input
+              value={createForm.user_id}
+              onChange={(event) => setCreateForm((prev) => ({ ...prev, user_id: event.target.value }))}
+              placeholder="아이디"
+            />
+          </label>
+          <label className="label">
+            이름
+            <input
+              value={createForm.user_name}
+              onChange={(event) => setCreateForm((prev) => ({ ...prev, user_name: event.target.value }))}
+              placeholder="이름"
+            />
+          </label>
+          <label className="label">
+            이메일
+            <input
+              value={createForm.email}
+              onChange={(event) => setCreateForm((prev) => ({ ...prev, email: event.target.value }))}
+              placeholder="example@domain.com"
+            />
+          </label>
+          <label className="label">
+            비밀번호
+            <input
+              type="password"
+              value={createForm.password}
+              onChange={(event) => setCreateForm((prev) => ({ ...prev, password: event.target.value }))}
+              placeholder="비밀번호"
+            />
+          </label>
+          <label className="label">
+            역할
+            <select
+              value={createForm.role}
+              onChange={(event) => setCreateForm((prev) => ({ ...prev, role: event.target.value }))}
+            >
+              <option value="general">general</option>
+              <option value="admin">admin</option>
+            </select>
+          </label>
+        </div>
+        <div className="admin-user-create-actions">
+          <button type="button" onClick={handleCreateUser} disabled={createLoading}>
+            {createLoading ? '생성 중...' : '사용자 생성'}
+          </button>
+        </div>
+        {createError && <p className="helper-text error-text">{createError}</p>}
+      </div>
       <div className="card admin-filters">
         <label className="label">
           사용자 ID 검색
@@ -226,7 +342,7 @@ const AdminUsersPage = () => {
         </button>
       </label>
       <div className="admin-dashboard admin-compact">
-        <div className="card admin-table">
+        <div className="card admin-table admin-users-table">
           <div className="admin-table-row admin-table-header">
             <span>INDEX</span>
             <button type="button" className="admin-sort" onClick={() => handleSort('user_id')}>
@@ -263,20 +379,30 @@ const AdminUsersPage = () => {
                   <option value="general">general</option>
                   <option value="admin">admin</option>
                 </select>
-                <button
-                  type="button"
-                  onClick={() => handleUserSave(user)}
-                  disabled={updatingUserId === user.id}
-                >
-                  {updatingUserId === user.id ? (
-                    <span className="button-with-spinner">
-                      <span className="spinner" aria-label="사용자 업데이트 중" />
-                      저장 중
-                    </span>
-                  ) : (
-                    '저장'
-                  )}
-                </button>
+                <div className="admin-user-actions">
+                  <button
+                    type="button"
+                    onClick={() => handleUserSave(user)}
+                    disabled={updatingUserId === user.id}
+                  >
+                    {updatingUserId === user.id ? (
+                      <span className="button-with-spinner">
+                        <span className="spinner" aria-label="사용자 업데이트 중" />
+                        저장 중
+                      </span>
+                    ) : (
+                      '저장'
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={() => handleDeleteUser(user)}
+                    disabled={deletingUserId === user.id}
+                  >
+                    {deletingUserId === user.id ? '삭제 중' : '삭제'}
+                  </button>
+                </div>
               </div>
             ))
           )}

@@ -134,6 +134,10 @@ h1 {
   width: 100%;
 }
 
+.admin-users-table .admin-table-row {
+  grid-template-columns: 48px 120px minmax(100px, 150px) minmax(160px, 1fr) 140px 170px;
+}
+
 .admin-table-row {
   display: grid;
   /* compressed, fluid columns to avoid horizontal scroll */
@@ -182,6 +186,34 @@ h1 {
 .admin-table-row button {
   padding: 6px 10px;
   font-size: 13px;
+}
+
+.admin-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-user-create {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-user-create h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.admin-user-create-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.admin-user-create-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 button.ghost {

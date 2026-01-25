@@ -135,6 +135,59 @@ def admin_update_user(
     return user
 
 
+@router.post("/admin/users", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED)
+def admin_create_user(
+    payload: schemas.AdminUserCreate,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    if db.query(models.User).filter(models.User.user_id == payload.user_id).first():
+        raise HTTPException(status_code=400, detail="이미 존재하는 사용자입니다.")
+    if db.query(models.User).filter(models.User.email == payload.email).first():
+        raise HTTPException(status_code=400, detail="이미 존재하는 이메일입니다.")
+    new_user = models.User(
+        user_id=payload.user_id,
+        user_name=payload.user_name,
+        password_hash=hash_password(payload.password),
+        email=payload.email,
+        role=payload.role,
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+
+@router.delete("/admin/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def admin_delete_user(
+    user_id: int,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="사용자를 찾을 수 없습니다.")
+    db.query(models.ChatRecord).filter(models.ChatRecord.user_id == user.id).delete(
+        synchronize_session=False
+    )
+    db.query(models.ChatSummary).filter(models.ChatSummary.user_id == user.id).delete(
+        synchronize_session=False
+    )
+    db.query(models.QuizAnswer).filter(models.QuizAnswer.user_id == user.id).delete(
+        synchronize_session=False
+    )
+    db.query(models.WrongQuestion).filter(
+        (models.WrongQuestion.question_creator_id == user.id)
+        | (models.WrongQuestion.solver_user_id == user.id)
+    ).delete(synchronize_session=False)
+    quizzes = db.query(models.Quiz).filter(models.Quiz.user_id == user.id).all()
+    for quiz in quizzes:
+        db.delete(quiz)
+    db.delete(user)
+    db.commit()
+    return None
+
+
 @router.get("/admin/users/{user_id}", response_model=schemas.UserOut)
 def admin_get_user(
     user_id: int,

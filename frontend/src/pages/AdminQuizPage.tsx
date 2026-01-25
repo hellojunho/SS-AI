@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import { authorizedFetch } from '../api'
 import { API_BASE_URL } from '../config'
 import AdminNav from '../components/AdminNav'
+import ProgressBar from '../components/ProgressBar'
 import { useAdminStatus } from '../hooks/useAdminStatus'
+import useProgress from '../hooks/useProgress'
 
 type AdminQuiz = {
   id: number
@@ -31,10 +33,12 @@ const AdminQuizPage = () => {
   const [quizzesList, setQuizzesList] = useState<AdminQuizList[]>([])
   const [listIndex, setListIndex] = useState<number | null>(null)
   const [finishedMessage, setFinishedMessage] = useState<string | null>(null)
+  const { progress, visible, start, finish } = useProgress()
 
   const handleGenerate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!targetUserId) return
+    start()
     setLoading(true)
     setErrorMessage(null)
     setFinishedMessage(null)
@@ -58,10 +62,12 @@ const AdminQuizPage = () => {
       setErrorMessage('퀴즈를 생성하지 못했습니다. 사용자 아이디를 확인해주세요.')
     } finally {
       setLoading(false)
+      finish()
     }
   }
 
   const handleGenerateAll = async () => {
+    start()
     setLoading(true)
     setErrorMessage(null)
     setFinishedMessage(null)
@@ -78,6 +84,7 @@ const AdminQuizPage = () => {
       setErrorMessage('퀴즈를 생성하지 못했습니다. 잠시 후 다시 시도해주세요.')
     } finally {
       setLoading(false)
+      finish()
     }
   }
 
@@ -181,6 +188,7 @@ const AdminQuizPage = () => {
             모든 퀴즈 불러오기
           </button>
         </div>
+        {visible && <ProgressBar value={progress} label="퀴즈 생성 진행률" />}
         {errorMessage && <p className="helper-text error-text">{errorMessage}</p>}
         {finishedMessage && <p className="helper-text">{finishedMessage}</p>}
       </form>

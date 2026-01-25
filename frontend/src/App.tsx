@@ -28,6 +28,24 @@ const App = () => {
     }
   }, [])
 
+  useEffect(() => {
+    const handleButtonClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null
+      const button = target?.closest('button')
+      if (!button || button.disabled) return
+      if (button.classList.contains('button-click-spinner')) return
+      if (button.querySelector('.spinner')) return
+      button.classList.add('button-click-spinner')
+      window.setTimeout(() => {
+        button.classList.remove('button-click-spinner')
+      }, 600)
+    }
+    document.addEventListener('click', handleButtonClick)
+    return () => {
+      document.removeEventListener('click', handleButtonClick)
+    }
+  }, [])
+
   return (
     <div className="app-shell">
       <main className="content">

@@ -5,6 +5,8 @@ import AdminNav from '../components/AdminNav'
 import { authorizedFetch } from '../api'
 import { API_BASE_URL } from '../config'
 import { useAdminStatus } from '../hooks/useAdminStatus'
+import ProgressBar from '../components/ProgressBar'
+import useProgress from '../hooks/useProgress'
 
 type QuizItem = {
   id: number
@@ -41,6 +43,7 @@ const AdminQuizzesPage = () => {
   const [generatingAll, setGeneratingAll] = useState(false)
   const [generateMessage, setGenerateMessage] = useState<string | null>(null)
   const [generateError, setGenerateError] = useState<string | null>(null)
+  const { progress, visible, start, finish } = useProgress()
 
   const fetchQuizzes = async () => {
     setLoading(true)
@@ -151,6 +154,7 @@ const AdminQuizzesPage = () => {
             setGenerateError('사용자 아이디를 입력해주세요.')
             return
           }
+          start()
           setGenerating(true)
           setGenerateMessage(null)
           setGenerateError(null)
@@ -173,6 +177,7 @@ const AdminQuizzesPage = () => {
             setGenerateError(message)
           } finally {
             setGenerating(false)
+            finish()
           }
         }}
       >
@@ -196,6 +201,7 @@ const AdminQuizzesPage = () => {
             type="button"
             className="secondary"
             onClick={async () => {
+              start()
               setGeneratingAll(true)
               setGenerateMessage(null)
               setGenerateError(null)
@@ -214,6 +220,7 @@ const AdminQuizzesPage = () => {
                 setGenerateError(message)
               } finally {
                 setGeneratingAll(false)
+                finish()
               }
             }}
             disabled={generating || generatingAll}
@@ -221,6 +228,7 @@ const AdminQuizzesPage = () => {
             {generatingAll ? '전체 생성 중...' : '전체 생성'}
           </button>
         </div>
+        {visible && <ProgressBar value={progress} label="퀴즈 생성 진행률" />}
         {generateMessage && <p className="helper-text">{generateMessage}</p>}
         {generateError && <p className="helper-text error-text">{generateError}</p>}
       </form>

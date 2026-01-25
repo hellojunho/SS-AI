@@ -15,6 +15,7 @@ type AdminQuiz = {
   wrong: string[]
   explanation: string
   reference: string
+  link: string
   source_user_id: string
 }
 
@@ -221,6 +222,12 @@ const AdminQuizPage = () => {
             <div className="quiz-reference">
               <span className="quiz-reference-label">해설</span>
               <p className="quiz-reference-content">{quiz.explanation}</p>
+            </div>
+          )}
+          {quiz.link && (
+            <div className="quiz-reference">
+              <span className="quiz-reference-label">문항 출처</span>
+              <p className="quiz-reference-content">{formatReference(quiz.link)}</p>
             </div>
           )}
           {quiz.reference && (

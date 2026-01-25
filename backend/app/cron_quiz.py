@@ -61,25 +61,31 @@ def run_quiz_job() -> None:
                 user_id=user.id, file_path=str(summary_file), summary_date=summary_date
             )
             db.add(summary_record)
-            quiz_payload = generate_quiz(summary)
-            choices = quiz_payload.get("choices", [])
-            if not isinstance(choices, list):
-                choices = []
-            quiz = models.Quiz(user_id=user.id, title="")
-            question = models.QuizQuestion(
-                question=quiz_payload.get("question", ""),
-                choices=json.dumps(choices, ensure_ascii=False),
-                correct=quiz_payload.get("correct", ""),
-                wrong=json.dumps(quiz_payload.get("wrong", []), ensure_ascii=False),
-                explanation=quiz_payload.get("explanation", ""),
-                reference=quiz_payload.get("reference", ""),
-                quiz=quiz,
-            )
-            db.add(quiz)
-            db.add(question)
-            db.commit()
-            db.refresh(quiz)
-            quiz.title = f"quiz{quiz.id}"
+            quiz_payloads = generate_quiz(summary)
+            created_quizzes: list[models.Quiz] = []
+            for quiz_payload in quiz_payloads:
+                choices = quiz_payload.get("choices", [])
+                if not isinstance(choices, list):
+                    choices = []
+                quiz = models.Quiz(
+                    user_id=user.id,
+                    title="",
+                    link=str(quiz_payload.get("link", "") or ""),
+                )
+                question = models.QuizQuestion(
+                    question=quiz_payload.get("question", ""),
+                    choices=json.dumps(choices, ensure_ascii=False),
+                    correct=quiz_payload.get("correct", ""),
+                    wrong=json.dumps(quiz_payload.get("wrong", []), ensure_ascii=False),
+                    explanation=quiz_payload.get("explanation", ""),
+                    reference=quiz_payload.get("reference", ""),
+                    quiz=quiz,
+                )
+                db.add(quiz)
+                db.add(question)
+                db.flush()
+                quiz.title = f"quiz{quiz.id}"
+                created_quizzes.append(quiz)
             db.commit()
     finally:
         db.close()

@@ -26,6 +26,7 @@ const AdminQuizDetailPage = () => {
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [mixing, setMixing] = useState(false)
 
   const quizId = useMemo(() => {
     if (!id) return null
@@ -123,6 +124,27 @@ const AdminQuizDetailPage = () => {
             <h2>{normalizeText(quiz.title)}</h2>
             <span className="sticker">생성 대상: {quiz.source_user_id || '-'}</span>
             <div style={{ marginLeft: 'auto' }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!quiz) return
+                  setMixing(true)
+                  setErrorMessage(null)
+                  try {
+                    const res = await authorizedFetch(`${API_BASE_URL}/quiz/admin/${quiz.id}/mix`, { method: 'POST' })
+                    if (!res.ok) throw new Error('mix 실패')
+                    const data = (await res.json()) as AdminQuiz
+                    setQuiz(data)
+                  } catch (err) {
+                    setErrorMessage('퀴즈를 섞지 못했습니다.')
+                  } finally {
+                    setMixing(false)
+                  }
+                }}
+                disabled={mixing}
+              >
+                {mixing ? '섞는 중...' : 'Mix'}
+              </button>
               <button
                 type="button"
                 onClick={async () => {

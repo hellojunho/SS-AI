@@ -33,6 +33,7 @@ const AdminQuizzesPage = () => {
   const [searchUser, setSearchUser] = useState('')
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'id', direction: 'desc' })
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [mixingId, setMixingId] = useState<number | null>(null)
 
   useEffect(() => {
     if (status !== 'allowed') return
@@ -187,6 +188,23 @@ const AdminQuizzesPage = () => {
                 <span>{normalizeText(q.question)}</span>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button type="button" onClick={() => navigate(`/admin/quizzes/${q.id}`)}>상세</button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setMixingId(q.id)
+                      try {
+                        const res = await authorizedFetch(`${API_BASE_URL}/quiz/admin/${q.id}/mix`, { method: 'POST' })
+                        if (!res.ok) throw new Error('mix 실패')
+                      } catch (err) {
+                        setError('퀴즈를 섞지 못했습니다.')
+                      } finally {
+                        setMixingId(null)
+                      }
+                    }}
+                    disabled={mixingId === q.id}
+                  >
+                    {mixingId === q.id ? '섞는 중...' : 'Mix'}
+                  </button>
                   <button
                     type="button"
                     onClick={async () => {

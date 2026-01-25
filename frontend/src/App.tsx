@@ -6,7 +6,9 @@ import { isAuthenticated } from './auth'
 import ChatPage from './pages/ChatPage'
 import HomePage from './pages/HomePage'
 import MyPage from './pages/MyPage'
-import AdminPage from './pages/AdminPage'
+import AdminHomePage from './pages/AdminHomePage'
+import AdminQuizPage from './pages/AdminQuizPage'
+import AdminUsersPage from './pages/AdminUsersPage'
 import QuizPage from './pages/QuizPage'
 import SignupPage from './pages/SignupPage'
 
@@ -32,7 +34,15 @@ const App = () => {
           <Route path="/mypage" element={isLoggedIn ? <MyPage /> : <Navigate to="/" />} />
           <Route path="/chat" element={isLoggedIn ? <ChatPage /> : <Navigate to="/" />} />
           <Route path="/quiz" element={isLoggedIn ? <QuizPage /> : <Navigate to="/" />} />
-          <Route path="/admin" element={isLoggedIn ? <AdminPage /> : <Navigate to="/" />} />
+          <Route path="/admin" element={isLoggedIn ? <AdminHomePage /> : <Navigate to="/" />} />
+          <Route
+            path="/admin/quizzes"
+            element={isLoggedIn ? <AdminQuizPage /> : <Navigate to="/" />}
+          />
+          <Route
+            path="/admin/users"
+            element={isLoggedIn ? <AdminUsersPage /> : <Navigate to="/" />}
+          />
         </Routes>
       </main>
       {isLoggedIn && <BottomNav />}

@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { authorizedFetch } from '../api'
 import { API_BASE_URL } from '../config'
-import { ensureAccessToken } from '../auth'
 
 type Quiz = {
   id: number
@@ -24,10 +23,6 @@ type Quiz = {
 const QuizPage = () => {
   const navigate = useNavigate()
   const [quiz, setQuiz] = useState<Quiz | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [adminTarget, setAdminTarget] = useState('')
-  const [quizzesList, setQuizzesList] = useState<Quiz[]>([])
-  const [listIndex, setListIndex] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [answerStatus, setAnswerStatus] = useState<'correct' | 'wrong' | null>(null)
@@ -103,23 +98,6 @@ const QuizPage = () => {
     submitAnswer(choice)
   }
 
-  useEffect(() => {
-    ;(async () => {
-      try {
-        const token = await ensureAccessToken()
-        if (!token) return
-        const resp = await fetch(`${API_BASE_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (!resp.ok) return
-        const data = await resp.json()
-        setIsAdmin(data.role === 'admin')
-      } catch {
-        // ignore
-      }
-    })()
-  }, [])
-
   const handlePrevQuiz = async () => {
     if (!quiz) return
     setLoading(true)
@@ -144,22 +122,6 @@ const QuizPage = () => {
 
   const handleNextQuiz = async () => {
     if (!quiz) return
-    // Admin viewing list: navigate local list
-    if (isAdmin && quizzesList.length > 0 && listIndex !== null) {
-      const nxt = listIndex + 1
-      if (nxt >= quizzesList.length) {
-        setFinishedMessage('끝입니다. 더 이상 불러올 퀴즈가 없습니다.')
-        setActiveModal('finished')
-        return
-      }
-      setListIndex(nxt)
-      setQuiz(quizzesList[nxt])
-      setAnswerStatus(null)
-      setActiveModal(null)
-      return
-    }
-
-    // Normal user: request next from server
     setLoading(true)
     setErrorMessage(null)
     try {
@@ -235,93 +197,16 @@ const QuizPage = () => {
       <h1>Quiz</h1>
       <p>요약된 대화를 바탕으로 퀴즈를 풀어보세요.</p>
       <div className="card">
-        {!isAdmin ? (
-          <button type="button" onClick={loadQuiz} disabled={loading}>
-            {loading ? (
-              <span className="button-with-spinner">
-                <span className="spinner" />
-                불러오는 중
-              </span>
-            ) : (
-              '퀴즈 불러오기'
-            )}
-          </button>
-        ) : (
-          <div className="admin-generate">
-            <input
-              type="text"
-              placeholder="사용자 아이디 또는 all"
-              value={adminTarget}
-              onChange={(e) => setAdminTarget(e.target.value)}
-            />
-            &nbsp;
-            <button
-              type="button"
-              onClick={async () => {
-                setLoading(true)
-                setErrorMessage(null)
-                try {
-                  const token = await ensureAccessToken()
-                  if (!token) throw new Error('로그인이 필요합니다.')
-                  if (adminTarget.trim().toLowerCase() === 'all') {
-                    const resp = await fetch(`${API_BASE_URL}/quiz/admin/generate-all`, {
-                      method: 'POST',
-                      headers: { Authorization: `Bearer ${token}` },
-                    })
-                    if (!resp.ok) throw new Error('생성 실패')
-                    const data = await resp.json()
-                    setFinishedMessage(`생성 완료: ${data.created}개, 실패: ${data.failed.length}개`)
-                  } else {
-                    const resp = await fetch(`${API_BASE_URL}/quiz/admin/generate`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                      body: JSON.stringify({ user_id: adminTarget }),
-                    })
-                    if (!resp.ok) throw new Error('생성 실패')
-                    const data = await resp.json()
-                    setFinishedMessage(`생성 완료: ${data.id} (사용자: ${data.source_user_id})`)
-                  }
-                } catch (error) {
-                  setErrorMessage('생성 중 오류가 발생했습니다.')
-                } finally {
-                  setLoading(false)
-                }
-              }}
-            >
-              {loading ? '생성중...' : '퀴즈 생성하기'}
-            </button>
-            &nbsp;
-            <button
-              type="button"
-              onClick={async () => {
-                setLoading(true)
-                setErrorMessage(null)
-                try {
-                  const token = await ensureAccessToken()
-                  if (!token) throw new Error('로그인이 필요합니다.')
-                  const resp = await fetch(`${API_BASE_URL}/quiz/admin/list`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                  })
-                  if (!resp.ok) throw new Error('불러오기 실패')
-                  const data = await resp.json()
-                  if (Array.isArray(data) && data.length > 0) {
-                    setQuizzesList(data)
-                    setListIndex(0)
-                    setQuiz(data[0])
-                  } else {
-                    setFinishedMessage('불러온 퀴즈가 없습니다.')
-                  }
-                } catch (error) {
-                  setErrorMessage('퀴즈 목록을 불러오지 못했습니다.')
-                } finally {
-                  setLoading(false)
-                }
-              }}
-            >
-              모든 퀴즈 불러오기
-            </button>
-          </div>
-        )}
+        <button type="button" onClick={loadQuiz} disabled={loading}>
+          {loading ? (
+            <span className="button-with-spinner">
+              <span className="spinner" />
+              불러오는 중
+            </span>
+          ) : (
+            '퀴즈 불러오기'
+          )}
+        </button>
         {errorMessage && <p className="helper-text error-text">{errorMessage}</p>}
         {finishedMessage && <p className="helper-text">{finishedMessage}</p>}
       </div>
@@ -358,41 +243,9 @@ const QuizPage = () => {
             ))}
           </ol>
           <div className="quiz-footer">
-            {isAdmin && quizzesList.length > 0 ? (
-              <>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => {
-                    if (listIndex === null) return
-                    const prev = listIndex - 1
-                    if (prev < 0) return
-                    setListIndex(prev)
-                    setQuiz(quizzesList[prev])
-                  }}
-                  disabled={loading}
-                >
-                  이전 문제
-                </button>
-                &nbsp;
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (listIndex === null) return
-                    const nxt = listIndex + 1
-                    if (nxt >= quizzesList.length) return
-                    setListIndex(nxt)
-                    setQuiz(quizzesList[nxt])
-                  }}
-                >
-                  다음 문제
-                </button>
-              </>
-            ) : (
-              <button type="button" className="secondary" onClick={handlePrevQuiz} disabled={loading}>
-                이전 문제
-              </button>
-            )}
+            <button type="button" className="secondary" onClick={handlePrevQuiz} disabled={loading}>
+              이전 문제
+            </button>
           </div>
           {quiz.explanation && (
             <div className="quiz-explanation">

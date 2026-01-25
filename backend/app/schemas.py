@@ -147,3 +147,6 @@ class AdminUserUpdate(BaseModel):
     user_name: str | None = None
     email: EmailStr | None = None
     role: str | None = None
+    password: str | None = None
+
+    _password_length = field_validator("password")(_validate_password_length)

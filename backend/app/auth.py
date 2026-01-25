@@ -127,6 +127,9 @@ def admin_update_user(
         user.user_name = payload.user_name
     if payload.role is not None:
         user.role = payload.role
+    if payload.password:
+        user.password_hash = hash_password(payload.password)
+        user.token += 1
     db.commit()
     db.refresh(user)
     return user

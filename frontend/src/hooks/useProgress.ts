@@ -28,6 +28,15 @@ const useProgress = (step = 6, intervalMs = 250) => {
     }, intervalMs)
   }, [clearTimers, intervalMs, step])
 
+  const setProgressValue = useCallback(
+    (value: number) => {
+      clearTimers()
+      setVisible(true)
+      setProgress(Math.max(0, Math.min(100, value)))
+    },
+    [clearTimers]
+  )
+
   const finish = useCallback(() => {
     clearTimers()
     setProgress(100)
@@ -43,7 +52,7 @@ const useProgress = (step = 6, intervalMs = 250) => {
     }
   }, [clearTimers])
 
-  return { progress, visible, start, finish }
+  return { progress, visible, start, finish, setProgressValue }
 }
 
 export default useProgress

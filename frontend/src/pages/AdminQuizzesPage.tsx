@@ -44,7 +44,14 @@ const AdminQuizzesPage = () => {
   const [generatingAll, setGeneratingAll] = useState(false)
   const [generateMessage, setGenerateMessage] = useState<string | null>(null)
   const [generateError, setGenerateError] = useState<string | null>(null)
-  const { progress, visible, start, finish } = useProgress()
+  const { progress, visible, finish, setProgressValue } = useProgress()
+  const [jobId, setJobId] = useState<string | null>(null)
+  const [jobType, setJobType] = useState<'single' | 'all' | null>(null)
+
+  const statusUrl = useMemo(() => {
+    if (!jobId) return null
+    return `${API_BASE_URL}/quiz/admin/generate/status/${jobId}`
+  }, [jobId])
 
   const fetchQuizzes = async () => {
     setLoading(true)
@@ -65,6 +72,68 @@ const AdminQuizzesPage = () => {
     if (status !== 'allowed') return
     fetchQuizzes()
   }, [status])
+
+  useEffect(() => {
+    if (!statusUrl || !jobType) return
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const response = await authorizedFetch(statusUrl)
+        if (!response.ok) {
+          throw new Error('퀴즈 생성 상태를 불러오지 못했습니다.')
+        }
+        const data = (await response.json()) as {
+          status: 'pending' | 'running' | 'completed' | 'failed'
+          progress: number
+          result?: { created: number; failed: { user_id: string; reason: string }[] } | QuizItem
+          error?: string
+        }
+        if (cancelled) return
+        setProgressValue(data.progress ?? 0)
+        if (data.status === 'completed') {
+          if (jobType === 'single' && data.result) {
+            const result = data.result as QuizItem
+            setGenerateMessage(`사용자 ${result.source_user_id || '해당'} 대상 퀴즈를 생성했습니다.`)
+            setTargetUserId('')
+            fetchQuizzes()
+          }
+          if (jobType === 'all' && data.result) {
+            const result = data.result as { created: number; failed: { user_id: string; reason: string }[] }
+            const failedCount = result.failed?.length ?? 0
+            setGenerateMessage(`전체 퀴즈 ${result.created}개 생성, 실패 ${failedCount}개`)
+            fetchQuizzes()
+          }
+          setGenerating(false)
+          setGeneratingAll(false)
+          setJobId(null)
+          setJobType(null)
+          finish()
+        }
+        if (data.status === 'failed') {
+          setGenerateError(data.error || '퀴즈를 생성하지 못했습니다.')
+          setGenerating(false)
+          setGeneratingAll(false)
+          setJobId(null)
+          setJobType(null)
+          finish()
+        }
+      } catch (err) {
+        if (cancelled) return
+        setGenerateError('퀴즈 생성 상태를 불러오지 못했습니다.')
+        setGenerating(false)
+        setGeneratingAll(false)
+        setJobId(null)
+        setJobType(null)
+        finish()
+      }
+    }
+    poll()
+    const intervalId = window.setInterval(poll, 1000)
+    return () => {
+      cancelled = true
+      window.clearInterval(intervalId)
+    }
+  }, [finish, jobType, setProgressValue, statusUrl])
 
   useEffect(() => {
     setPage(1)
@@ -177,7 +246,7 @@ const AdminQuizzesPage = () => {
             setGenerateError('사용자 아이디를 입력해주세요.')
             return
           }
-          start()
+          setProgressValue(0)
           setGenerating(true)
           setGenerateMessage(null)
           setGenerateError(null)
@@ -191,14 +260,12 @@ const AdminQuizzesPage = () => {
               const data = (await res.json().catch(() => null)) as { detail?: string } | null
               throw new Error(data?.detail || '퀴즈를 생성하지 못했습니다.')
             }
-            const data = (await res.json()) as QuizItem
-            setGenerateMessage(`사용자 ${data.source_user_id || trimmed} 대상 퀴즈를 생성했습니다.`)
-            setTargetUserId('')
-            fetchQuizzes()
+            const data = (await res.json()) as { job_id: string }
+            setJobId(data.job_id)
+            setJobType('single')
           } catch (err) {
             const message = err instanceof Error ? err.message : '퀴즈를 생성하지 못했습니다.'
             setGenerateError(message)
-          } finally {
             setGenerating(false)
             finish()
           }
@@ -218,13 +285,20 @@ const AdminQuizzesPage = () => {
         </label>
         <div className="admin-actions-buttons">
           <button type="submit" disabled={generating || generatingAll}>
-            {generating ? '생성 중...' : '퀴즈 생성'}
+            {generating ? (
+              <span className="button-with-spinner">
+                <span className="spinner" aria-label="퀴즈 생성 중" />
+                생성 중
+              </span>
+            ) : (
+              '퀴즈 생성'
+            )}
           </button>
           <button
             type="button"
             className="secondary"
             onClick={async () => {
-              start()
+              setProgressValue(0)
               setGeneratingAll(true)
               setGenerateMessage(null)
               setGenerateError(null)
@@ -234,21 +308,26 @@ const AdminQuizzesPage = () => {
                   const data = (await res.json().catch(() => null)) as { detail?: string } | null
                   throw new Error(data?.detail || '퀴즈를 생성하지 못했습니다.')
                 }
-                const data = (await res.json()) as { created: number; failed: { user_id: string; reason: string }[] }
-                const failedCount = data.failed?.length ?? 0
-                setGenerateMessage(`전체 퀴즈 ${data.created}개 생성, 실패 ${failedCount}개`)
-                fetchQuizzes()
+                const data = (await res.json()) as { job_id: string }
+                setJobId(data.job_id)
+                setJobType('all')
               } catch (err) {
                 const message = err instanceof Error ? err.message : '퀴즈를 생성하지 못했습니다.'
                 setGenerateError(message)
-              } finally {
                 setGeneratingAll(false)
                 finish()
               }
             }}
             disabled={generating || generatingAll}
           >
-            {generatingAll ? '전체 생성 중...' : '전체 생성'}
+            {generatingAll ? (
+              <span className="button-with-spinner">
+                <span className="spinner" aria-label="전체 퀴즈 생성 중" />
+                전체 생성 중
+              </span>
+            ) : (
+              '전체 생성'
+            )}
           </button>
         </div>
         {visible && <ProgressBar value={progress} label="퀴즈 생성 진행률" />}

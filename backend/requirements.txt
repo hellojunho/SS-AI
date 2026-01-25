@@ -12,3 +12,13 @@ pydantic[email]==2.9.2
 
 requests==2.31.0
 google-auth>=2.20.0
+python-multipart==0.0.6
+
+beautifulsoup4==4.12.3
+faiss-cpu==1.8.0.post1
+numpy==1.26.4
+openai==1.52.0
+pandas==2.2.3
+pypdf==5.0.1
+requests==2.31.0
+sentence-transformers==3.1.1

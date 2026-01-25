@@ -81,6 +81,16 @@ def _quiz_to_response(
     )
 
 
+def _get_existing_question_texts(db: Session) -> list[str]:
+    questions = db.query(models.QuizQuestion.question).all()
+    normalized_questions: list[str] = []
+    for (question_text,) in questions:
+        normalized = _normalize_question_text(question_text or "")
+        if normalized:
+            normalized_questions.append(normalized)
+    return normalized_questions
+
+
 def _generate_quiz_for_user(target_user: models.User, db: Session) -> models.Quiz:
     record_file = _latest_record_file(target_user.user_id)
     if not record_file or not record_file.exists():
@@ -88,6 +98,33 @@ def _generate_quiz_for_user(target_user: models.User, db: Session) -> models.Qui
     content = record_file.read_text(encoding="utf-8")
     summary_date = datetime.utcnow()
     summary = summarize_chat(content, summary_date)
+
+    existing_questions = _get_existing_question_texts(db)
+    attempts = 3
+    duplicate_attempts = 0
+    invalid_attempts = 0
+    quiz_payload: dict[str, object] | None = None
+    for _ in range(attempts):
+        candidate_payload = generate_quiz(summary)
+        question_text = str(candidate_payload.get("question", "") or "")
+        normalized_question = _normalize_question_text(question_text)
+        if not normalized_question:
+            invalid_attempts += 1
+            continue
+        if any(
+            _is_similar_question(existing, normalized_question)
+            for existing in existing_questions
+        ):
+            duplicate_attempts += 1
+            continue
+        quiz_payload = candidate_payload
+        break
+
+    if quiz_payload is None:
+        if duplicate_attempts and duplicate_attempts + invalid_attempts == attempts:
+            raise HTTPException(status_code=409, detail="유사한 문제가 이미 있습니다.")
+        raise HTTPException(status_code=500, detail="퀴즈 생성에 실패했습니다.")
+
     user_summary_dir = SUMMARY_DIR / target_user.user_id
     user_summary_dir.mkdir(parents=True, exist_ok=True)
     summary_file = (
@@ -99,18 +136,18 @@ def _generate_quiz_for_user(target_user: models.User, db: Session) -> models.Qui
         user_id=target_user.id, file_path=str(summary_file), summary_date=summary_date
     )
     db.add(summary_record)
-    quiz_payload = generate_quiz(summary)
+
     choices = quiz_payload.get("choices", [])
     if not isinstance(choices, list):
         choices = []
     quiz = models.Quiz(user_id=target_user.id, title="")
     question = models.QuizQuestion(
-        question=quiz_payload.get("question", ""),
+        question=str(quiz_payload.get("question", "") or ""),
         choices=json.dumps(choices, ensure_ascii=False),
-        correct=quiz_payload.get("correct", ""),
+        correct=str(quiz_payload.get("correct", "") or ""),
         wrong=json.dumps(quiz_payload.get("wrong", []), ensure_ascii=False),
-        explanation=quiz_payload.get("explanation", ""),
-        reference=quiz_payload.get("reference", ""),
+        explanation=str(quiz_payload.get("explanation", "") or ""),
+        reference=str(quiz_payload.get("reference", "") or ""),
         quiz=quiz,
     )
     db.add(quiz)

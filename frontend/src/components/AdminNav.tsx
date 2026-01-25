@@ -6,7 +6,7 @@ const AdminNav = () => (
       관리자 홈
     </NavLink>
     <NavLink to="/admin/quizzes" className={({ isActive }) => (isActive ? 'active' : '')}>
-      퀴즈 생성
+      퀴즈 대시보드
     </NavLink>
     <NavLink to="/admin/users" className={({ isActive }) => (isActive ? 'active' : '')}>
       사용자 대시보드

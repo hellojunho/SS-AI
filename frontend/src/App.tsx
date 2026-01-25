@@ -7,7 +7,8 @@ import ChatPage from './pages/ChatPage'
 import HomePage from './pages/HomePage'
 import MyPage from './pages/MyPage'
 import AdminHomePage from './pages/AdminHomePage'
-import AdminQuizPage from './pages/AdminQuizPage'
+import AdminQuizDetailPage from './pages/AdminQuizDetailPage'
+import AdminQuizzesPage from './pages/AdminQuizzesPage'
 import AdminUsersPage from './pages/AdminUsersPage'
 import AdminUserEditPage from './pages/AdminUserEditPage'
 import QuizPage from './pages/QuizPage'
@@ -38,7 +39,11 @@ const App = () => {
           <Route path="/admin" element={isLoggedIn ? <AdminHomePage /> : <Navigate to="/" />} />
           <Route
             path="/admin/quizzes"
-            element={isLoggedIn ? <AdminQuizPage /> : <Navigate to="/" />}
+            element={isLoggedIn ? <AdminQuizzesPage /> : <Navigate to="/" />}
+          />
+          <Route
+            path="/admin/quizzes/:id"
+            element={isLoggedIn ? <AdminQuizDetailPage /> : <Navigate to="/" />}
           />
           <Route
             path="/admin/users"

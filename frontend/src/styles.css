@@ -442,6 +442,12 @@ button:disabled {
   color: #6366f1;
 }
 
+/* Ensure choice text (보기 설명) is black */
+.quiz-option > span:last-child {
+  color: #000000;
+  font-weight: 500;
+}
+
 .quiz-header {
   display: flex;
   align-items: center;

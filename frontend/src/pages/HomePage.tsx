@@ -8,6 +8,7 @@ const HomePage = () => {
   const navigate = useNavigate()
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated())
   const [userId, setUserId] = useState('')
+  const [rememberId, setRememberId] = useState(false)
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -19,6 +20,14 @@ const HomePage = () => {
     return () => {
       window.removeEventListener('authchange', handleAuthChange)
       window.removeEventListener('storage', handleAuthChange)
+    }
+  }, [])
+
+  useEffect(() => {
+    const saved = localStorage.getItem('rememberedUserId')
+    if (saved) {
+      setUserId(saved)
+      setRememberId(true)
     }
   }, [])
 
@@ -39,6 +48,11 @@ const HomePage = () => {
       }
       const data = await response.json()
       saveTokens(data.access_token, data.refresh_token)
+      if (rememberId) {
+        localStorage.setItem('rememberedUserId', userId)
+      } else {
+        localStorage.removeItem('rememberedUserId')
+      }
       setIsLoggedIn(true)
       navigate('/')
     } catch (error) {
@@ -88,6 +102,10 @@ const HomePage = () => {
               onChange={(event) => setUserId(event.target.value)}
               placeholder="아이디를 입력하세요"
             />
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input type="checkbox" checked={rememberId} onChange={(e) => setRememberId(e.target.checked)} />
+            <span style={{ fontSize: 13 }}>아이디 기억하기</span>
           </label>
           <label className="label">
             비밀번호

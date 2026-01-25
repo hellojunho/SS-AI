@@ -145,6 +145,44 @@ def admin_generate_quiz(
     return schemas.AdminQuizResponse(**response.model_dump(), source_user_id=target_user.user_id)
 
 
+@router.post("/admin/generate-all")
+def admin_generate_all(
+    current_user: models.User = Depends(require_admin), db: Session = Depends(get_db)
+):
+    users = db.query(models.User).all()
+    created = 0
+    failed: list[dict[str, str]] = []
+    for user in users:
+        try:
+            _generate_quiz_for_user(user, db)
+            created += 1
+        except HTTPException as exc:
+            # skip users without records or other expected errors
+            failed.append({"user_id": user.user_id, "reason": str(exc.detail)})
+        except Exception as exc:
+            failed.append({"user_id": user.user_id, "reason": str(exc)})
+    return {"created": created, "failed": failed}
+
+
+@router.get("/admin/list", response_model=list[schemas.AdminQuizResponse])
+def admin_list_quizzes(
+    current_user: models.User = Depends(require_admin), db: Session = Depends(get_db)
+):
+    quizzes = db.query(models.Quiz).order_by(models.Quiz.created_at.desc()).all()
+    results: list[schemas.AdminQuizResponse] = []
+    for quiz in quizzes:
+        try:
+            resp = _quiz_to_response(quiz)
+            source_user_id = ""
+            if hasattr(quiz, "user") and quiz.user is not None:
+                source_user_id = quiz.user.user_id
+            results.append(schemas.AdminQuizResponse(**resp.model_dump(), source_user_id=source_user_id))
+        except HTTPException:
+            # skip quizzes that can't be converted
+            continue
+    return results
+
+
 @router.get("/latest", response_model=schemas.QuizResponse)
 def latest_quiz(
     current_user: models.User = Depends(get_current_user),
@@ -175,6 +213,23 @@ def next_quiz(
     )
     if not quiz:
         raise HTTPException(status_code=404, detail="다음 퀴즈가 없습니다.")
+    return _quiz_to_response(quiz, current_user=current_user, db=db)
+
+
+@router.get("/prev", response_model=schemas.QuizResponse)
+def prev_quiz(
+    current_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    quiz = (
+        db.query(models.Quiz)
+        .filter(models.Quiz.user_id == current_user.id, models.Quiz.id < current_id)
+        .order_by(models.Quiz.id.desc())
+        .first()
+    )
+    if not quiz:
+        raise HTTPException(status_code=404, detail="이전 퀴즈가 없습니다.")
     return _quiz_to_response(quiz, current_user=current_user, db=db)
 
 

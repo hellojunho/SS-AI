@@ -30,15 +30,15 @@ backend/
   app/
   chat/record/{user_id}/{user_id}-YYYY-MM-DD.txt
   chat/summation/{user_id}/{user_id}-YYYY-MM-DD_sum.txt
-ai/
-  README.md
-  ingest.py
-  query.py
-  rag_pipeline.py
+  ai/
+    README.md
+    ingest.py
+    query.py
+    rag_pipeline.py
 frontend/
   src/
 ```
 
 ## 문서 기반 Q&A (RAG)
-- GPU 없이도 문서(txt/csv/pdf/md/웹페이지)를 인덱싱하고 질문에 답할 수 있는 예시 스크립트를 `ai/`에 제공합니다.
-- 자세한 사용법은 `ai/README.md`를 참고하세요.
+- GPU 없이도 문서(txt/csv/pdf/md/웹페이지)를 인덱싱하고 질문에 답할 수 있는 예시 스크립트를 `backend/ai/`에 제공합니다.
+- 자세한 사용법은 `backend/ai/README.md`를 참고하세요.

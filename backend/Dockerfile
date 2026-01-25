@@ -3,12 +3,14 @@ FROM python:3.11-slim
 WORKDIR /app
 
 COPY requirements.txt /app/requirements.txt
+COPY ai/requirements.txt /app/ai/requirements.txt
 RUN apt-get update \
     && apt-get install -y --no-install-recommends cron \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir -r /app/requirements.txt
+    && pip install --no-cache-dir -r /app/requirements.txt -r /app/ai/requirements.txt
 
 COPY app /app/app
+COPY ai /app/ai
 COPY cron /app/cron
 COPY .env.example /app/.env
 

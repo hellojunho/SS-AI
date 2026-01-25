@@ -53,6 +53,7 @@ class Quiz(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
     title: Mapped[str] = mapped_column(String(100), nullable=False)
+    link: Mapped[str] = mapped_column(Text, nullable=False, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     tried_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     solved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

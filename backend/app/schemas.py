@@ -84,6 +84,7 @@ class SummaryResponse(BaseModel):
 class QuizResponse(BaseModel):
     id: int
     title: str
+    link: str
     question: str
     choices: list[str]
     correct: str

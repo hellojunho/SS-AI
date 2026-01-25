@@ -13,6 +13,7 @@ type Quiz = {
   wrong: string[]
   explanation: string
   reference: string
+  link: string
   has_correct_attempt: boolean
   has_wrong_attempt: boolean
   answer_history: string[]
@@ -184,6 +185,15 @@ const QuizPage = () => {
     })
   }
 
+  const renderQuestionLink = (link: string) => {
+    if (!link.trim()) return null
+    return (
+      <a href={link} target="_blank" rel="noreferrer">
+        출처 바로가기
+      </a>
+    )
+  }
+
   return (
     <section className="page">
       <div className="chat-header">
@@ -226,6 +236,11 @@ const QuizPage = () => {
               )}
             </div>
             <p className="question">Q1. {quiz.question}</p>
+            {quiz.link && (
+              <div className="quiz-question-source">
+                {renderQuestionLink(quiz.link)}
+              </div>
+            )}
           </div>
           <ol className="quiz-options">
             {quiz.choices.map((choice, index) => (

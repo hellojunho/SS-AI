@@ -167,6 +167,24 @@ const ChatPage = () => {
     return `${date}: ${formatQuestionPreview(question)}`
   }
 
+  const renderContent = (content: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g
+    return content.split('\n').map((line, lineIndex) => (
+      <p key={`${lineIndex}-${line}`}>
+        {line.split(urlRegex).map((part, index) => {
+          if (/^https?:\/\//.test(part)) {
+            return (
+              <a key={`${part}-${index}`} href={part} target="_blank" rel="noreferrer">
+                {part}
+              </a>
+            )
+          }
+          return <span key={`${part}-${index}`}>{part}</span>
+        })}
+      </p>
+    ))
+  }
+
   return (
     <section className="page chat-page">
       <div className="chat-layout">
@@ -210,7 +228,7 @@ const ChatPage = () => {
             )}
             {entries.map((entry, index) => (
               <div key={`${entry.role}-${index}`} className={`bubble ${entry.role}`}>
-                {entry.content}
+                {renderContent(entry.content)}
               </div>
             ))}
           </div>

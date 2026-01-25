@@ -67,6 +67,7 @@ def _quiz_to_response(
     return schemas.QuizResponse(
         id=quiz.id,
         title=quiz.title,
+        link=quiz.link or "",
         question=question.question,
         choices=_parse_choices(question.choices),
         correct=question.correct,
@@ -100,27 +101,32 @@ def _generate_quiz_for_user(target_user: models.User, db: Session) -> models.Qui
     summary = summarize_chat(content, summary_date)
 
     existing_questions = _get_existing_question_texts(db)
-    attempts = 3
+    attempts = 5
     duplicate_attempts = 0
     invalid_attempts = 0
-    quiz_payload: dict[str, object] | None = None
+    quiz_payloads: list[dict[str, object]] = []
     for _ in range(attempts):
-        candidate_payload = generate_quiz(summary)
-        question_text = str(candidate_payload.get("question", "") or "")
-        normalized_question = _normalize_question_text(question_text)
-        if not normalized_question:
-            invalid_attempts += 1
-            continue
-        if any(
-            _is_similar_question(existing, normalized_question)
-            for existing in existing_questions
-        ):
-            duplicate_attempts += 1
-            continue
-        quiz_payload = candidate_payload
-        break
+        candidate_payloads = generate_quiz(summary)
+        for candidate_payload in candidate_payloads:
+            if len(quiz_payloads) >= 5:
+                break
+            question_text = str(candidate_payload.get("question", "") or "")
+            normalized_question = _normalize_question_text(question_text)
+            if not normalized_question:
+                invalid_attempts += 1
+                continue
+            if any(
+                _is_similar_question(existing, normalized_question)
+                for existing in existing_questions
+            ):
+                duplicate_attempts += 1
+                continue
+            quiz_payloads.append(candidate_payload)
+            existing_questions.append(normalized_question)
+        if len(quiz_payloads) >= 3:
+            break
 
-    if quiz_payload is None:
+    if not quiz_payloads:
         if duplicate_attempts and duplicate_attempts + invalid_attempts == attempts:
             raise HTTPException(status_code=409, detail="유사한 문제가 이미 있습니다.")
         raise HTTPException(status_code=500, detail="퀴즈 생성에 실패했습니다.")
@@ -137,48 +143,54 @@ def _generate_quiz_for_user(target_user: models.User, db: Session) -> models.Qui
     )
     db.add(summary_record)
 
-    choices = quiz_payload.get("choices", [])
-    if not isinstance(choices, list):
-        choices = []
-    quiz = models.Quiz(user_id=target_user.id, title="")
-    question = models.QuizQuestion(
-        question=str(quiz_payload.get("question", "") or ""),
-        choices=json.dumps(choices, ensure_ascii=False),
-        correct=str(quiz_payload.get("correct", "") or ""),
-        wrong=json.dumps(quiz_payload.get("wrong", []), ensure_ascii=False),
-        explanation=str(quiz_payload.get("explanation", "") or ""),
-        reference=str(quiz_payload.get("reference", "") or ""),
-        quiz=quiz,
-    )
-    db.add(quiz)
-    db.add(question)
-    db.flush()
-    if question.correct:
-        db.add(
-            models.QuizCorrect(
-                quiz_id=quiz.id,
-                quiz_question_id=question.id,
-                answer_text=question.correct,
-            )
+    created_quizzes: list[models.Quiz] = []
+    for quiz_payload in quiz_payloads:
+        choices = quiz_payload.get("choices", [])
+        if not isinstance(choices, list):
+            choices = []
+        quiz = models.Quiz(
+            user_id=target_user.id,
+            title="",
+            link=str(quiz_payload.get("link", "") or ""),
         )
-    wrong_list = quiz_payload.get("wrong", [])
-    if isinstance(wrong_list, list):
-        for wrong_answer in wrong_list:
-            if not wrong_answer:
-                continue
+        question = models.QuizQuestion(
+            question=str(quiz_payload.get("question", "") or ""),
+            choices=json.dumps(choices, ensure_ascii=False),
+            correct=str(quiz_payload.get("correct", "") or ""),
+            wrong=json.dumps(quiz_payload.get("wrong", []), ensure_ascii=False),
+            explanation=str(quiz_payload.get("explanation", "") or ""),
+            reference=str(quiz_payload.get("reference", "") or ""),
+            quiz=quiz,
+        )
+        db.add(quiz)
+        db.add(question)
+        db.flush()
+        quiz.title = f"quiz{quiz.id}"
+        if question.correct:
             db.add(
-                models.QuizWrong(
+                models.QuizCorrect(
                     quiz_id=quiz.id,
                     quiz_question_id=question.id,
-                    answer_text=str(wrong_answer),
+                    answer_text=question.correct,
                 )
             )
+        wrong_list = quiz_payload.get("wrong", [])
+        if isinstance(wrong_list, list):
+            for wrong_answer in wrong_list:
+                if not wrong_answer:
+                    continue
+                db.add(
+                    models.QuizWrong(
+                        quiz_id=quiz.id,
+                        quiz_question_id=question.id,
+                        answer_text=str(wrong_answer),
+                    )
+                )
+        created_quizzes.append(quiz)
     db.commit()
-    db.refresh(quiz)
-    quiz.title = f"quiz{quiz.id}"
-    db.commit()
-    db.refresh(quiz)
-    return quiz
+    for quiz in created_quizzes:
+        db.refresh(quiz)
+    return created_quizzes[0]
 
 
 def _shuffle_question_choices(question: models.QuizQuestion) -> bool:

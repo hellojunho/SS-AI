@@ -50,6 +50,14 @@ const AdminHomePage = () => {
           <h2>퀴즈 생성</h2>
           <p>사용자 대화 기록을 기반으로 퀴즈를 생성합니다.</p>
         </button>
+        <button
+          type="button"
+          className="card admin-link-card"
+          onClick={() => navigate('/admin/quizzes')}
+        >
+          <h2>퀴즈 대시보드</h2>
+          <p>생성된 퀴즈 목록을 확인하고 검토할 수 있습니다.</p>
+        </button>
         <button type="button" className="card admin-link-card" onClick={() => navigate('/admin/users')}>
           <h2>사용자 대시보드</h2>
           <p>사용자 계정 정보를 검색하고 수정할 수 있습니다.</p>

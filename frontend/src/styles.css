@@ -295,6 +295,29 @@ button.ghost:hover {
   font-size: 18px;
 }
 
+.admin-docs-grid {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.admin-docs-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-docs-card input[type='file'],
+.admin-docs-card input[type='text'] {
+  width: 100%;
+}
+
+.admin-docs-message {
+  font-size: 13px;
+  color: #2563eb;
+  margin: 0;
+}
+
 .admin-filters {
   display: grid;
   gap: 12px;

@@ -9,6 +9,7 @@ from . import models
 from .auth import router as auth_router
 from .chat import router as chat_router
 from .config import settings
+from .docs_admin import router as docs_admin_router
 from .db import Base, engine
 from .logging_utils import log_error
 from .quiz import router as quiz_router
@@ -27,6 +28,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(docs_admin_router)
 app.include_router(quiz_router)
 
 def _ensure_quiz_choices_column() -> None:

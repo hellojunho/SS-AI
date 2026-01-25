@@ -17,11 +17,31 @@ pip install -r ai/requirements.txt
 ## 문서 수집/인덱싱
 ```bash
 python ai/ingest.py \
-  --input docs/ \
+  --input ai/docs/ \
   --input data/papers/sample.pdf \
   --url https://example.com/article \
   --output-dir ai/index
 ```
+
+## 운영 환경에서 문서 학습(관리자 페이지 연동)
+관리자 페이지에서 문서를 업로드하면 `ai/docs` 아래 확장자 폴더에 자동 저장됩니다. 학습 버튼을 누르면 백엔드가
+`ai/ingest.py`를 호출하여 인덱스를 갱신합니다. 학습 진행 상황은 큰 작업 단위(문서 수집 → 청킹 → 임베딩 → 저장)를
+기준으로 가중치를 부여해 0~100%로 표시합니다.
+
+### 폴더 구조
+```
+ai/docs/
+  csv/  # CSV 문서
+  txt/  # 텍스트 문서
+  pdf/  # PDF 문서
+  md/   # 마크다운 문서
+  web/  # 웹 문서 URL
+    urls.txt
+```
+
+### 웹 페이지 학습 방법
+웹 페이지는 `ai/docs/web/urls.txt`에 URL을 한 줄씩 추가하거나, 관리자 페이지의 “웹 URL 추가” 입력창으로 등록합니다.
+`ai/ingest.py`는 해당 URL을 읽어 HTML 본문을 추출하고 텍스트로 변환한 뒤 인덱싱합니다.
 
 ### 지원 형식
 - txt, csv, pdf, md

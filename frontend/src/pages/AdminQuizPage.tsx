@@ -207,7 +207,7 @@ const AdminQuizPage = () => {
           </ol>
           <div className="quiz-reference">
             <span className="quiz-reference-label">정답</span>
-            <p className="quiz-reference-content">{quiz.correct}</p>
+            <li><p className="quiz-reference-content">{quiz.correct}</p></li>
           </div>
           <div className="quiz-reference">
             <span className="quiz-reference-label">오답 보기</span>

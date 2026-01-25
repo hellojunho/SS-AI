@@ -183,6 +183,29 @@ def admin_list_quizzes(
     return results
 
 
+@router.delete("/admin/{quiz_id}")
+def admin_delete_quiz(
+    quiz_id: int,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    quiz = db.query(models.Quiz).filter(models.Quiz.id == quiz_id).first()
+    if not quiz:
+        raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
+    # collect question ids to remove related WrongQuestion entries
+    question_ids = [q.id for q in quiz.questions] if quiz.questions else []
+    if question_ids:
+        try:
+            db.query(models.WrongQuestion).filter(models.WrongQuestion.quiz_question_id.in_(question_ids)).delete(synchronize_session=False)
+        except Exception:
+            # ignore if something goes wrong with wrong question cleanup
+            pass
+    # delete quiz (questions and answers are cascaded via ORM)
+    db.delete(quiz)
+    db.commit()
+    return {"deleted": quiz_id}
+
+
 @router.get("/latest", response_model=schemas.QuizResponse)
 def latest_quiz(
     current_user: models.User = Depends(get_current_user),

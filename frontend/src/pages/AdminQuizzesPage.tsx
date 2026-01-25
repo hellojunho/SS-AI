@@ -32,6 +32,7 @@ const AdminQuizzesPage = () => {
   const [searchTitle, setSearchTitle] = useState('')
   const [searchUser, setSearchUser] = useState('')
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'id', direction: 'desc' })
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   useEffect(() => {
     if (status !== 'allowed') return
@@ -85,6 +86,13 @@ const AdminQuizzesPage = () => {
     })
     const multiplier = sortConfig.direction === 'asc' ? 1 : -1
     const arr = [...filteredItems].sort((a, b) => {
+      const key = sortConfig.key
+      if (key === 'id') {
+        // numeric sort for id
+        const na = Number((a as any).id ?? 0)
+        const nb = Number((b as any).id ?? 0)
+        return (na - nb) * multiplier
+      }
       const valueA = normalizeText(String(a[sortConfig.key as keyof QuizItem] ?? ''))
       const valueB = normalizeText(String(b[sortConfig.key as keyof QuizItem] ?? ''))
       return valueA.localeCompare(valueB, 'ko', { sensitivity: 'base' }) * multiplier
@@ -177,7 +185,28 @@ const AdminQuizzesPage = () => {
                 </button>
                 <span>{q.source_user_id || '-'}</span>
                 <span>{normalizeText(q.question)}</span>
-                <button type="button" onClick={() => navigate(`/admin/quizzes/${q.id}`)}>상세</button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="button" onClick={() => navigate(`/admin/quizzes/${q.id}`)}>상세</button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!confirm('이 퀴즈를 삭제하시겠습니까?')) return
+                      setDeletingId(q.id)
+                      try {
+                        const res = await authorizedFetch(`${API_BASE_URL}/quiz/admin/${q.id}`, { method: 'DELETE' })
+                        if (!res.ok) throw new Error('삭제 실패')
+                        setQuizzes((prev) => prev.filter((it) => it.id !== q.id))
+                      } catch (err) {
+                        setError('퀴즈를 삭제하지 못했습니다.')
+                      } finally {
+                        setDeletingId(null)
+                      }
+                    }}
+                    disabled={deletingId === q.id}
+                  >
+                    {deletingId === q.id ? '삭제 중...' : '삭제'}
+                  </button>
+                </div>
               </div>
             ))
           )}

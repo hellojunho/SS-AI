@@ -25,6 +25,7 @@ const AdminQuizDetailPage = () => {
   const [quiz, setQuiz] = useState<AdminQuiz | null>(null)
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const quizId = useMemo(() => {
     if (!id) return null
@@ -121,6 +122,30 @@ const AdminQuizDetailPage = () => {
           <div className="quiz-header">
             <h2>{normalizeText(quiz.title)}</h2>
             <span className="sticker">생성 대상: {quiz.source_user_id || '-'}</span>
+            <div style={{ marginLeft: 'auto' }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!quiz) return
+                  if (!confirm('이 퀴즈를 삭제하시겠습니까?')) return
+                  setDeleting(true)
+                  try {
+                    const res = await authorizedFetch(`${API_BASE_URL}/quiz/admin/${quiz.id}`, { method: 'DELETE' })
+                    if (!res.ok) {
+                      throw new Error('삭제 실패')
+                    }
+                    navigate('/admin/quizzes')
+                  } catch (err) {
+                    setErrorMessage('퀴즈를 삭제하지 못했습니다.')
+                  } finally {
+                    setDeleting(false)
+                  }
+                }}
+                disabled={deleting}
+              >
+                {deleting ? '삭제 중...' : '삭제'}
+              </button>
+            </div>
           </div>
           <div className="quiz-question">
             <div className="quiz-index">
@@ -140,7 +165,7 @@ const AdminQuizDetailPage = () => {
           </ol>
           <div className="quiz-reference">
             <span className="quiz-reference-label">정답</span>
-            <p className="quiz-reference-content">{normalizeText(quiz.correct)}</p>
+            <li><p className="quiz-reference-content">{normalizeText(quiz.correct)}</p></li>
           </div>
           <div className="quiz-reference">
             <span className="quiz-reference-label">오답 보기</span>

@@ -10,12 +10,14 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+import requests
 from openai import APIStatusError, OpenAI, RateLimitError
 
 from .config import settings
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 ISSUE_LOG_DIR = BASE_DIR / "logs" / "issues"
+URL_REGEX = re.compile(r"https?://[^\s\]\)]+")
 
 
 def _client() -> OpenAI:
@@ -73,6 +75,38 @@ def _extract_error_code(exc: Exception) -> str | None:
     if not isinstance(error, dict):
         return None
     return error.get("code") or error.get("type")
+
+
+def _is_accessible_reference(url: str, timeout: float = 3.0) -> bool:
+    try:
+        response = requests.head(url, allow_redirects=True, timeout=timeout)
+        if response.status_code >= 400:
+            return False
+        content_length = response.headers.get("Content-Length")
+        if content_length and content_length.isdigit():
+            return int(content_length) > 0
+    except requests.RequestException as exc:
+        logging.info("출처 링크 확인 실패(HEAD): %s", url, exc_info=exc)
+        return False
+    try:
+        response = requests.get(url, allow_redirects=True, timeout=timeout + 2, stream=True)
+        if response.status_code >= 400:
+            return False
+        return bool(response.raw.read(128))
+    except requests.RequestException as exc:
+        logging.info("출처 링크 확인 실패(GET): %s", url, exc_info=exc)
+        return False
+
+
+def _filter_references(reference: str) -> str:
+    urls = URL_REGEX.findall(reference)
+    if not urls:
+        return ""
+    valid_urls = []
+    for url in urls:
+        if _is_accessible_reference(url):
+            valid_urls.append(url)
+    return " ".join(valid_urls)
 
 
 def _call_chatgpt(
@@ -151,7 +185,8 @@ def generate_chat_answer(message: str) -> tuple[str, str]:
 
     if "출처:" in content:
         answer, reference = content.split("출처:", 1)
-        return answer.strip(), reference.strip()
+        filtered_reference = _filter_references(reference.strip())
+        return answer.strip(), filtered_reference or "출처 정보 없음"
     return content.strip(), "출처 정보 없음"
 
 

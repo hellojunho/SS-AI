@@ -74,6 +74,7 @@ def _quiz_to_response(
         wrong=_parse_choices(question.wrong),
         explanation=question.explanation,
         reference=question.reference,
+        created_at=quiz.created_at,
         has_correct_attempt=has_correct_attempt,
         has_wrong_attempt=has_wrong_attempt,
         answer_history=answer_history,
@@ -204,13 +205,14 @@ def _shuffle_question_choices(question: models.QuizQuestion) -> bool:
 
 def _delete_quiz_records(quiz: models.Quiz, db: Session) -> None:
     question_ids = [q.id for q in quiz.questions] if quiz.questions else []
-    if question_ids:
-        try:
+    try:
+        if question_ids:
             db.query(models.WrongQuestion).filter(
                 models.WrongQuestion.quiz_question_id.in_(question_ids)
             ).delete(synchronize_session=False)
-        except Exception:
-            pass
+    except Exception as e:
+        print(e)
+        pass
     db.delete(quiz)
 
 

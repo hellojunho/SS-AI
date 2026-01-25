@@ -13,11 +13,12 @@ type QuizItem = {
   title: string
   question: string
   source_user_id: string
+  created_at: string
 }
 
 const PAGE_SIZE = 10
 
-type SortKey = 'id' | 'title' | 'source_user_id' | 'question'
+type SortKey = 'id' | 'title' | 'source_user_id' | 'question' | 'created_at'
 
 type SortConfig = {
   key: SortKey
@@ -86,6 +87,22 @@ const AdminQuizzesPage = () => {
     return stripped.trim()
   }
 
+  const formatDate = (value: string) => {
+    if (!value) return '-'
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return value
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} - ${pad(
+      d.getHours()
+    )}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  }
+
+  const truncateText = (value: string, length = 5) => {
+    if (!value) return value
+    if (value.length <= length) return value
+    return value.slice(0, length) + ' ...'
+  }
+
   const filtered = useMemo(() => {
     const titleQuery = searchTitle.trim().toLowerCase()
     const userQuery = searchUser.trim().toLowerCase()
@@ -100,10 +117,14 @@ const AdminQuizzesPage = () => {
     const arr = [...filteredItems].sort((a, b) => {
       const key = sortConfig.key
       if (key === 'id') {
-        // numeric sort for id
         const na = Number((a as any).id ?? 0)
         const nb = Number((b as any).id ?? 0)
         return (na - nb) * multiplier
+      }
+      if (key === 'created_at') {
+        const da = new Date((a as any).created_at).getTime() || 0
+        const db = new Date((b as any).created_at).getTime() || 0
+        return (da - db) * multiplier
       }
       const valueA = normalizeText(String(a[sortConfig.key as keyof QuizItem] ?? ''))
       const valueB = normalizeText(String(b[sortConfig.key as keyof QuizItem] ?? ''))
@@ -134,6 +155,8 @@ const AdminQuizzesPage = () => {
       </section>
     )
   }
+
+  console.log('quizzes:', quizzes);
 
   return (
     <section className="page">
@@ -328,11 +351,11 @@ const AdminQuizzesPage = () => {
       <div className="admin-dashboard admin-compact">
         <div className="card admin-table">
           <div className="admin-table-row admin-table-header">
-            <span>INDEX</span>
             <button type="button" className="admin-sort" onClick={() => handleSort('id')}>ID {renderSortIndicator('id')}</button>
             <button type="button" className="admin-sort" onClick={() => handleSort('title')}>제목 {renderSortIndicator('title')}</button>
             <button type="button" className="admin-sort" onClick={() => handleSort('source_user_id')}>생성 사용자 {renderSortIndicator('source_user_id')}</button>
             <button type="button" className="admin-sort" onClick={() => handleSort('question')}>문항 {renderSortIndicator('question')}</button>
+            <button type="button" className="admin-sort" onClick={() => handleSort('created_at')}>생성일 {renderSortIndicator('created_at')}</button>
             <span>관리</span>
           </div>
 
@@ -343,34 +366,15 @@ const AdminQuizzesPage = () => {
           ) : (
             paged.map((q, idx) => (
               <div key={q.id} className="admin-table-row">
-                <span>{(currentPage - 1) * PAGE_SIZE + idx + 1}</span>
                 <span>{q.id}</span>
                 <button type="button" className="link-button" onClick={() => navigate(`/admin/quizzes/${q.id}`)}>
                   {normalizeText(q.title)}
                 </button>
                 <span>{q.source_user_id || '-'}</span>
-                <span>{normalizeText(q.question)}</span>
+                <span>{truncateText(normalizeText(q.question))}</span>
+                <span className="created-at">{formatDate(q.created_at)}</span>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button type="button" onClick={() => navigate(`/admin/quizzes/${q.id}`)}>상세</button>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!confirm('이 퀴즈를 삭제하시겠습니까?')) return
-                      setDeletingId(q.id)
-                      try {
-                        const res = await authorizedFetch(`${API_BASE_URL}/quiz/admin/${q.id}`, { method: 'DELETE' })
-                        if (!res.ok) throw new Error('삭제 실패')
-                        setQuizzes((prev) => prev.filter((it) => it.id !== q.id))
-                      } catch (err) {
-                        setError('퀴즈를 삭제하지 못했습니다.')
-                      } finally {
-                        setDeletingId(null)
-                      }
-                    }}
-                    disabled={deletingId === q.id}
-                  >
-                    {deletingId === q.id ? '삭제 중...' : '삭제'}
-                  </button>
                 </div>
               </div>
             ))

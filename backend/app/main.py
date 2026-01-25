@@ -45,6 +45,38 @@ def _ensure_quiz_choices_column() -> None:
         connection.execute(text("ALTER TABLE quiz_questions MODIFY COLUMN choices TEXT NOT NULL"))
 
 
+def _ensure_quiz_link_column() -> None:
+    inspector = inspect(engine)
+    if "quizzes" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("quizzes")}
+    if "link" in columns:
+        return
+    with engine.begin() as connection:
+        # Add TEXT column without default (MySQL doesn't allow default for TEXT)
+        connection.execute(text("ALTER TABLE quizzes ADD COLUMN link TEXT"))
+        # Initialize existing rows with empty string
+        connection.execute(text("UPDATE quizzes SET link = '' WHERE link IS NULL"))
+        # Make NOT NULL now that values are initialized
+        connection.execute(text("ALTER TABLE quizzes MODIFY COLUMN link TEXT NOT NULL"))
+
+
+def _ensure_quiz_created_at_column() -> None:
+    inspector = inspect(engine)
+    if "quizzes" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("quizzes")}
+    if "created_at" in columns:
+        return
+    with engine.begin() as connection:
+        # Add DATETIME column without default first
+        connection.execute(text("ALTER TABLE quizzes ADD COLUMN created_at DATETIME"))
+        # Initialize existing rows with current timestamp
+        connection.execute(text("UPDATE quizzes SET created_at = NOW() WHERE created_at IS NULL"))
+        # Make NOT NULL with CURRENT_TIMESTAMP default
+        connection.execute(text("ALTER TABLE quizzes MODIFY COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"))
+
+
 def _ensure_users_role_column() -> None:
     inspector = inspect(engine)
     if "users" not in inspector.get_table_names():
@@ -93,6 +125,8 @@ async def startup() -> None:
         try:
             Base.metadata.create_all(bind=engine)
             _ensure_quiz_choices_column()
+            _ensure_quiz_link_column()
+            _ensure_quiz_created_at_column()
             _ensure_users_role_column()
             _ensure_admin_user()
             return

@@ -137,7 +137,8 @@ h1 {
 .admin-table-row {
   display: grid;
   /* compressed, fluid columns to avoid horizontal scroll */
-  grid-template-columns: 48px 120px minmax(100px,150px) minmax(160px,1fr) 90px 120px 110px;
+  /* widen created_at column (5th) so full timestamp fits */
+  grid-template-columns: 48px 120px minmax(100px,150px) minmax(160px,1fr) 200px 120px 110px;
   align-items: center;
   gap: 8px;
   padding: 6px 0;
@@ -168,6 +169,13 @@ h1 {
   text-overflow: ellipsis;
   overflow: hidden;
   font-size: 13px;
+}
+
+/* created_at should not be ellipsized; keep timestamp visible */
+.admin-table-row .created-at {
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 /* Make action button smaller to save horizontal space */

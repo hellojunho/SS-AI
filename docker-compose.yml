@@ -20,6 +20,7 @@ services:
       - ./backend/.env
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/secrets/sa.json
+      - DEV_RELOAD=1
     volumes:
       - ./backend:/app
       - ./backend/sa.json:/secrets/sa.json:ro

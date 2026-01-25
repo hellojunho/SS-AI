@@ -91,6 +91,7 @@ class QuizResponse(BaseModel):
     wrong: list[str]
     explanation: str
     reference: str
+    created_at: datetime | None = None
     has_correct_attempt: bool = False
     has_wrong_attempt: bool = False
     answer_history: list[str] = []

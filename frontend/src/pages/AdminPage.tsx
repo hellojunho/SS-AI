@@ -20,6 +20,16 @@ type AdminQuiz = {
   source_user_id: string
 }
 
+type AdminUser = {
+  id: number
+  user_id: string
+  user_name: string
+  email: string
+  role: string
+  created_at: string
+  last_logined: string | null
+}
+
 const AdminPage = () => {
   const navigate = useNavigate()
   const [status, setStatus] = useState<'loading' | 'allowed' | 'forbidden'>('loading')
@@ -27,6 +37,10 @@ const AdminPage = () => {
   const [quiz, setQuiz] = useState<AdminQuiz | null>(null)
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [users, setUsers] = useState<AdminUser[]>([])
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [usersError, setUsersError] = useState<string | null>(null)
+  const [updatingUserId, setUpdatingUserId] = useState<number | null>(null)
 
   useEffect(() => {
     const loadUser = async () => {
@@ -38,6 +52,7 @@ const AdminPage = () => {
         const data = (await response.json()) as UserInfo
         if (data.role === 'admin') {
           setStatus('allowed')
+          await loadUsers()
         } else {
           setStatus('forbidden')
         }
@@ -47,6 +62,60 @@ const AdminPage = () => {
     }
     loadUser()
   }, [])
+
+  const loadUsers = async () => {
+    setUsersLoading(true)
+    setUsersError(null)
+    try {
+      const response = await authorizedFetch(`${API_BASE_URL}/auth/admin/users`)
+      if (!response.ok) {
+        throw new Error('사용자 정보를 불러오지 못했습니다.')
+      }
+      const data = (await response.json()) as AdminUser[]
+      setUsers(data)
+    } catch (error) {
+      setUsersError('사용자 정보를 불러오지 못했습니다.')
+    } finally {
+      setUsersLoading(false)
+    }
+  }
+
+  const handleUserChange = (
+    userId: number,
+    field: keyof Pick<AdminUser, 'user_name' | 'email' | 'role'>,
+    value: string,
+  ) => {
+    setUsers((prev) =>
+      prev.map((user) => (user.id === userId ? { ...user, [field]: value } : user)),
+    )
+  }
+
+  const handleUserSave = async (user: AdminUser) => {
+    setUpdatingUserId(user.id)
+    setUsersError(null)
+    try {
+      const response = await authorizedFetch(`${API_BASE_URL}/auth/admin/users/${user.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_name: user.user_name,
+          email: user.email,
+          role: user.role,
+        }),
+      })
+      if (!response.ok) {
+        throw new Error('사용자 정보를 수정하지 못했습니다.')
+      }
+      const updated = (await response.json()) as AdminUser
+      setUsers((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
+    } catch (error) {
+      setUsersError('사용자 정보를 수정하지 못했습니다. 입력값을 확인해주세요.')
+    } finally {
+      setUpdatingUserId(null)
+    }
+  }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -72,6 +141,13 @@ const AdminPage = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const formatDate = (value: string | null) => {
+    if (!value) return '-'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return value
+    return date.toLocaleString('ko-KR')
   }
 
   const renderReference = (reference: string) => {
@@ -133,10 +209,77 @@ const AdminPage = () => {
           />
         </label>
         <button type="submit" disabled={loading}>
-          {loading ? '생성 중' : '퀴즈 생성'}
+          {loading ? (
+            <span className="button-with-spinner">
+              <span className="spinner" aria-label="퀴즈 생성 중" />
+              생성 중
+            </span>
+          ) : (
+            '퀴즈 생성'
+          )}
         </button>
         {errorMessage && <p className="helper-text error-text">{errorMessage}</p>}
       </form>
+      <div className="admin-dashboard">
+        <h2>사용자 대시보드</h2>
+        <p className="helper-text">
+          전체 사용자 정보를 확인하고 역할이나 기본 정보를 수정할 수 있습니다.
+        </p>
+        <div className="card admin-table">
+          <div className="admin-table-row admin-table-header">
+            <span>ID</span>
+            <span>이름</span>
+            <span>이메일</span>
+            <span>역할</span>
+            <span>가입일</span>
+            <span>마지막 로그인</span>
+            <span>관리</span>
+          </div>
+          {usersLoading ? (
+            <div className="admin-table-empty">사용자 정보를 불러오는 중...</div>
+          ) : users.length === 0 ? (
+            <div className="admin-table-empty">등록된 사용자가 없습니다.</div>
+          ) : (
+            users.map((user) => (
+              <div key={user.id} className="admin-table-row">
+                <span>{user.user_id}</span>
+                <input
+                  value={user.user_name}
+                  onChange={(event) => handleUserChange(user.id, 'user_name', event.target.value)}
+                />
+                <input
+                  value={user.email}
+                  onChange={(event) => handleUserChange(user.id, 'email', event.target.value)}
+                />
+                <select
+                  value={user.role}
+                  onChange={(event) => handleUserChange(user.id, 'role', event.target.value)}
+                >
+                  <option value="general">general</option>
+                  <option value="admin">admin</option>
+                </select>
+                <span>{formatDate(user.created_at)}</span>
+                <span>{formatDate(user.last_logined)}</span>
+                <button
+                  type="button"
+                  onClick={() => handleUserSave(user)}
+                  disabled={updatingUserId === user.id}
+                >
+                  {updatingUserId === user.id ? (
+                    <span className="button-with-spinner">
+                      <span className="spinner" aria-label="사용자 업데이트 중" />
+                      저장 중
+                    </span>
+                  ) : (
+                    '저장'
+                  )}
+                </button>
+              </div>
+            ))
+          )}
+          {usersError && <p className="helper-text error-text">{usersError}</p>}
+        </div>
+      </div>
       {quiz && (
         <div className="card">
           <div className="quiz-header">

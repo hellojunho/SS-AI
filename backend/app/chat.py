@@ -35,6 +35,8 @@ def _parse_chat_file(file_path: Path) -> List[schemas.ChatHistoryEntry]:
             entries.append(schemas.ChatHistoryEntry(role="gpt", content=content[5:]))
         elif content.startswith("출처: ") and entries and entries[-1].role == "gpt":
             entries[-1].content = f"{entries[-1].content}\n{content}"
+        elif entries:
+            entries[-1].content = f"{entries[-1].content}\n{content}"
     return entries
 
 

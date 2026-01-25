@@ -94,3 +94,39 @@ def require_admin(current_user: models.User = Depends(get_current_user)) -> mode
 @router.get("/me", response_model=schemas.UserOut)
 def me(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+
+@router.get("/admin/users", response_model=list[schemas.UserOut])
+def admin_list_users(
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return db.query(models.User).order_by(models.User.created_at.desc()).all()
+
+
+@router.patch("/admin/users/{user_id}", response_model=schemas.UserOut)
+def admin_update_user(
+    user_id: int,
+    payload: schemas.AdminUserUpdate,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="사용자를 찾을 수 없습니다.")
+    if payload.email and payload.email != user.email:
+        exists = (
+            db.query(models.User)
+            .filter(models.User.email == payload.email, models.User.id != user_id)
+            .first()
+        )
+        if exists:
+            raise HTTPException(status_code=400, detail="이미 존재하는 이메일입니다.")
+        user.email = payload.email
+    if payload.user_name is not None:
+        user.user_name = payload.user_name
+    if payload.role is not None:
+        user.role = payload.role
+    db.commit()
+    db.refresh(user)
+    return user

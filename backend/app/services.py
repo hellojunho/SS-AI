@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 import re
 import time
 from datetime import datetime
@@ -271,6 +272,17 @@ def _normalize_quiz_payload(payload: dict) -> dict:
             while len(normalized_choices) < 4:
                 normalized_choices.append(f"보기 {len(normalized_choices) + 1}")
             correct_index = 0 if normalized_choices else -1
+    if correct_index in range(len(normalized_choices)):
+        tagged = [
+            {"choice": choice, "is_correct": index == correct_index}
+            for index, choice in enumerate(normalized_choices)
+        ]
+        random.shuffle(tagged)
+        normalized_choices = [item["choice"] for item in tagged]
+        correct_index = next(
+            (index for index, item in enumerate(tagged) if item["is_correct"]),
+            -1,
+        )
     correct = normalized_choices[correct_index] if correct_index in range(4) else ""
     wrong = [choice for index, choice in enumerate(normalized_choices) if index != correct_index]
     return {

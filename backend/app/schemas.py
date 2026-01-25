@@ -141,3 +141,9 @@ class AdminQuizGenerateRequest(BaseModel):
 
 class AdminQuizResponse(QuizResponse):
     source_user_id: str
+
+
+class AdminUserUpdate(BaseModel):
+    user_name: str | None = None
+    email: EmailStr | None = None
+    role: str | None = None

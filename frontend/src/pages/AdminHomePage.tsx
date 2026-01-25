@@ -35,7 +35,7 @@ const AdminHomePage = () => {
           이전
         </button>
         <button type="button" className="chat-nav-button" onClick={() => navigate('/')}>
-          🏠
+          홈
         </button>
       </div>
       <h1>관리자 페이지</h1>

@@ -32,7 +32,7 @@ const AdminUsersPage = () => {
   const [usersLoading, setUsersLoading] = useState(false)
   const [usersError, setUsersError] = useState<string | null>(null)
   const [updatingUserId, setUpdatingUserId] = useState<number | null>(null)
-  const [passwordDrafts, setPasswordDrafts] = useState<Record<number, string>>({})
+  
   const [searchId, setSearchId] = useState('')
   const [searchEmail, setSearchEmail] = useState('')
   const [searchRole, setSearchRole] = useState('')
@@ -77,20 +77,13 @@ const AdminUsersPage = () => {
     )
   }
 
-  const handlePasswordChange = (userId: number, value: string) => {
-    setPasswordDrafts((prev) => ({ ...prev, [userId]: value }))
-  }
-
   const handleUserSave = async (user: AdminUser) => {
     setUpdatingUserId(user.id)
     setUsersError(null)
     try {
-      const password = passwordDrafts[user.id]?.trim()
+      // Only update role from dashboard; other fields are read-only here.
       const payload = {
-        user_name: user.user_name,
-        email: user.email,
         role: user.role,
-        ...(password ? { password } : {}),
       }
       const response = await authorizedFetch(`${API_BASE_URL}/auth/admin/users/${user.id}`, {
         method: 'PATCH',
@@ -104,7 +97,6 @@ const AdminUsersPage = () => {
       }
       const updated = (await response.json()) as AdminUser
       setUsers((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
-      setPasswordDrafts((prev) => ({ ...prev, [user.id]: '' }))
     } catch (error) {
       setUsersError('사용자 정보를 수정하지 못했습니다. 입력값을 확인해주세요.')
     } finally {
@@ -192,7 +184,7 @@ const AdminUsersPage = () => {
           이전
         </button>
         <button type="button" className="chat-nav-button" onClick={() => navigate('/')}>
-          🏠
+          홈
         </button>
       </div>
       <h1>사용자 대시보드</h1>
@@ -224,9 +216,19 @@ const AdminUsersPage = () => {
           </select>
         </label>
       </div>
-      <div className="admin-dashboard">
+      <label className="label" style={{ alignItems: 'flex-end' }}>
+        <button type="button" onClick={() => {
+          setSearchId('')
+          setSearchEmail('')
+          setSearchRole('')
+        }}>
+          초기화
+        </button>
+      </label>
+      <div className="admin-dashboard admin-compact">
         <div className="card admin-table">
           <div className="admin-table-row admin-table-header">
+            <span>INDEX</span>
             <button type="button" className="admin-sort" onClick={() => handleSort('user_id')}>
               ID {renderSortIndicator('user_id')}
             </button>
@@ -239,13 +241,6 @@ const AdminUsersPage = () => {
             <button type="button" className="admin-sort" onClick={() => handleSort('role')}>
               역할 {renderSortIndicator('role')}
             </button>
-            <span>비밀번호 변경</span>
-            <button type="button" className="admin-sort" onClick={() => handleSort('created_at')}>
-              가입일 {renderSortIndicator('created_at')}
-            </button>
-            <button type="button" className="admin-sort" onClick={() => handleSort('last_logined')}>
-              마지막 로그인 {renderSortIndicator('last_logined')}
-            </button>
             <span>관리</span>
           </div>
           {usersLoading ? (
@@ -253,17 +248,14 @@ const AdminUsersPage = () => {
           ) : pagedUsers.length === 0 ? (
             <div className="admin-table-empty">조건에 맞는 사용자가 없습니다.</div>
           ) : (
-            pagedUsers.map((user) => (
+            pagedUsers.map((user, idx) => (
               <div key={user.id} className="admin-table-row">
-                <span>{user.user_id}</span>
-                <input
-                  value={user.user_name}
-                  onChange={(event) => handleUserChange(user.id, 'user_name', event.target.value)}
-                />
-                <input
-                  value={user.email}
-                  onChange={(event) => handleUserChange(user.id, 'email', event.target.value)}
-                />
+                <span>{(currentPage - 1) * PAGE_SIZE + idx + 1}</span>
+                    <button type="button" className="link-button" onClick={() => navigate(`/admin/users/${user.id}`)}>
+                      {user.user_id}
+                    </button>
+                <span>{user.user_name}</span>
+                <span>{user.email}</span>
                 <select
                   value={user.role}
                   onChange={(event) => handleUserChange(user.id, 'role', event.target.value)}
@@ -271,14 +263,6 @@ const AdminUsersPage = () => {
                   <option value="general">general</option>
                   <option value="admin">admin</option>
                 </select>
-                <input
-                  type="password"
-                  value={passwordDrafts[user.id] ?? ''}
-                  onChange={(event) => handlePasswordChange(user.id, event.target.value)}
-                  placeholder="새 비밀번호"
-                />
-                <span>{formatDate(user.created_at)}</span>
-                <span>{formatDate(user.last_logined)}</span>
                 <button
                   type="button"
                   onClick={() => handleUserSave(user)}

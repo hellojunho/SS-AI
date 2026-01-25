@@ -9,6 +9,7 @@ import MyPage from './pages/MyPage'
 import AdminHomePage from './pages/AdminHomePage'
 import AdminQuizPage from './pages/AdminQuizPage'
 import AdminUsersPage from './pages/AdminUsersPage'
+import AdminUserEditPage from './pages/AdminUserEditPage'
 import QuizPage from './pages/QuizPage'
 import SignupPage from './pages/SignupPage'
 
@@ -43,6 +44,7 @@ const App = () => {
             path="/admin/users"
             element={isLoggedIn ? <AdminUsersPage /> : <Navigate to="/" />}
           />
+          <Route path="/admin/users/:id" element={isLoggedIn ? <AdminUserEditPage /> : <Navigate to="/" />} />
         </Routes>
       </main>
       {isLoggedIn && <BottomNav />}

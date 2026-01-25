@@ -133,3 +133,15 @@ def admin_update_user(
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.get("/admin/users/{user_id}", response_model=schemas.UserOut)
+def admin_get_user(
+    user_id: int,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="사용자를 찾을 수 없습니다.")
+    return user

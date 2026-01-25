@@ -77,16 +77,54 @@ h1 {
   gap: 12px;
 }
 
+/* Compact admin layout to fit more rows on screen without scrolling */
+.admin-compact {
+  gap: 8px;
+}
+.admin-compact .card {
+  padding: 8px;
+}
+.admin-compact .admin-table-row {
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+}
+.admin-compact .admin-table-header {
+  padding-bottom: 8px;
+  font-size: 12px;
+}
+.admin-compact .admin-table-row input,
+.admin-compact .admin-table-row select {
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.admin-compact .admin-table-row span {
+  font-size: 13px;
+}
+.admin-compact .admin-pagination {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+.admin-compact .admin-pagination button {
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
 .admin-table {
   overflow-x: hidden;
+  width: 100%;
 }
 
 .admin-table-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  /* compressed, fluid columns to avoid horizontal scroll */
+  grid-template-columns: 48px 120px minmax(100px,150px) minmax(160px,1fr) 90px 120px 110px;
   align-items: center;
-  gap: 12px;
-  padding: 8px 0;
+  gap: 8px;
+  padding: 6px 0;
   border-bottom: 1px solid #f1f5f9;
   min-width: 0;
 }
@@ -103,11 +141,36 @@ h1 {
 .admin-table-row select {
   width: 100%;
   min-width: 0;
+  padding: 6px 8px;
+  font-size: 13px;
 }
 
 .admin-table-row span {
   min-width: 0;
   overflow-wrap: anywhere;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+/* Make action button smaller to save horizontal space */
+.admin-table-row button {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* link-style button for user id */
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #111827;
+  font-weight: 600;
+  cursor: pointer;
+}
+.link-button:hover {
+  text-decoration: underline;
 }
 
 .admin-sort {

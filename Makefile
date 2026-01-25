@@ -14,3 +14,9 @@ reset:
 	docker compose down -v
 	# Run in foreground so logs remain in this console
 	docker compose up --build
+
+
+update:
+	docker compose down
+	git pull origin main
+	docker compose up --build

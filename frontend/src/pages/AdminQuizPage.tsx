@@ -148,7 +148,7 @@ const AdminQuizPage = () => {
         <button type="button" className="chat-nav-button" onClick={() => navigate(-1)}>
           이전
         </button>
-        <button type="button" className="chat-nav-button" onClick={() => navigate('/')}>🏠</button>
+        <button type="button" className="chat-nav-button" onClick={() => navigate('/')}>홈</button>
       </div>
       <h1>관리자 퀴즈 생성</h1>
       <p>사용자 대화 기록을 기반으로 퀴즈를 생성합니다.</p>

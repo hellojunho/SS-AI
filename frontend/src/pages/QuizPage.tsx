@@ -191,7 +191,7 @@ const QuizPage = () => {
           이전
         </button>
         <button type="button" className="chat-nav-button" onClick={() => navigate('/')}>
-          🏠
+          홈
         </button>
       </div>
       <h1>Quiz</h1>
@@ -307,7 +307,7 @@ const QuizPage = () => {
             <p>{finishedMessage}</p>
             <div className="modal-actions">
               <button type="button" onClick={handleFinish}>
-                🏠
+                홈
               </button>
             </div>
           </div>

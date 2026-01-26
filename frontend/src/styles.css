@@ -318,6 +318,80 @@ button.ghost:hover {
   margin: 0;
 }
 
+.admin-token-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-token-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-token-message {
+  font-size: 13px;
+  color: #ef4444;
+}
+
+.admin-token-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin-top: 16px;
+}
+
+.admin-token-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-token-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.admin-token-value {
+  font-size: 24px;
+  color: #111827;
+}
+
+.admin-token-sub {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.admin-token-bar {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-token-bar-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #374151;
+  font-weight: 600;
+}
+
+.admin-token-breakdown {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  font-size: 14px;
+  color: #111827;
+}
+
 .admin-filters {
   display: grid;
   gap: 12px;

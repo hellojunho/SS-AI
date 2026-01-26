@@ -14,6 +14,9 @@ const AdminNav = () => (
     <NavLink to="/admin/docs" className={({ isActive }) => (isActive ? 'active' : '')}>
       문서 학습
     </NavLink>
+    <NavLink to="/admin/llm" className={({ isActive }) => (isActive ? 'active' : '')}>
+      LLM 토큰
+    </NavLink>
   </nav>
 )
 

@@ -58,6 +58,10 @@ const AdminHomePage = () => {
           <h2>문서 학습</h2>
           <p>문서를 업로드하고 AI 학습을 실행할 수 있습니다.</p>
         </button>
+        <button type="button" className="card admin-link-card" onClick={() => navigate('/admin/llm')}>
+          <h2>LLM 토큰 대시보드</h2>
+          <p>ChatGPT 토큰 사용량과 잔여량을 확인할 수 있습니다.</p>
+        </button>
       </div>
     </section>
   )

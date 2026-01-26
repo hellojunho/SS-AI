@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import logging
 from typing import Any
 
@@ -19,7 +19,9 @@ class UsageWindow:
 
 def _usage_window() -> UsageWindow:
     today = date.today()
-    return UsageWindow(start_date=today.replace(day=1), end_date=today)
+    end_date = today - timedelta(days=1)
+    start_date = end_date.replace(day=1)
+    return UsageWindow(start_date=start_date, end_date=end_date)
 
 
 def _sum_tokens(records: list[dict[str, Any]]) -> tuple[int, int, int, int]:

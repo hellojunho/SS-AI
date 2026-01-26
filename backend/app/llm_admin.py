@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from .auth import require_admin
 from .config import settings
 from .llm_usage import get_usage_snapshot
+from .openai_usage import fetch_openai_usage
 
 
 class LlmUsageResponse(BaseModel):
@@ -26,7 +27,7 @@ router = APIRouter(prefix="/admin/llm", tags=["admin-llm"])
 
 @router.get("/usage", response_model=LlmUsageResponse)
 def get_llm_usage(current_user=Depends(require_admin)):
-    snapshot = get_usage_snapshot()
+    snapshot = fetch_openai_usage(settings.openai_api_key) or get_usage_snapshot()
     total_budget = max(settings.openai_token_budget, 0)
     used_tokens = snapshot.total_tokens
     remaining_tokens = max(total_budget - used_tokens, 0)

@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     jwt_refresh_expire_minutes: int = 30
     openai_model: str = "gpt-4o-mini"
     openai_token_budget: int = 128000
+    openai_usage_endpoint: str = "https://api.openai.com/v1/usage"
     openai_api_key: str | None = None
     gemini_api_key: str | None = None
     # gemini_model: str = "gemini-2.5-pro"

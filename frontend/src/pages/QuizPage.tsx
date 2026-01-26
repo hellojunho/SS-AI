@@ -19,6 +19,15 @@ type Quiz = {
   answer_history: string[]
   tried_at: string | null
   solved_at: string | null
+  current_index: number | null
+  total_count: number | null
+}
+
+type QuizSummary = {
+  total_count: number
+  correct_count: number
+  wrong_count: number
+  accuracy_rate: number
 }
 
 const QuizPage = () => {
@@ -30,6 +39,8 @@ const QuizPage = () => {
   const [activeModal, setActiveModal] = useState<'correct' | 'wrong' | 'finished' | null>(null)
   const [finishedMessage, setFinishedMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [quizSummary, setQuizSummary] = useState<QuizSummary | null>(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
 
   const loadQuiz = async () => {
     setLoading(true)
@@ -44,6 +55,7 @@ const QuizPage = () => {
       setAnswerStatus(null)
       setActiveModal(null)
       setFinishedMessage(null)
+      setQuizSummary(null)
     } catch (error) {
       setQuiz(null)
       setErrorMessage('퀴즈를 가져오지 못했습니다. 로그인 상태를 확인해주세요.')
@@ -114,6 +126,7 @@ const QuizPage = () => {
       setAnswerStatus(null)
       setActiveModal(null)
       setFinishedMessage(null)
+      setQuizSummary(null)
     } catch (error) {
       setErrorMessage('이전 문제를 불러오지 못했습니다.')
     } finally {
@@ -128,8 +141,9 @@ const QuizPage = () => {
     try {
       const response = await authorizedFetch(`${API_BASE_URL}/quiz/next?current_id=${quiz.id}`)
       if (!response.ok) {
-        setFinishedMessage('오늘의 문제를 모두 풀었어요! 홈으로 이동합니다.')
+        setFinishedMessage('오늘의 문제를 모두 풀었어요!')
         setActiveModal('finished')
+        await loadQuizSummary('user')
         return
       }
       const data = await response.json()
@@ -137,6 +151,7 @@ const QuizPage = () => {
       setAnswerStatus(null)
       setActiveModal(null)
       setFinishedMessage(null)
+      setQuizSummary(null)
     } catch (error) {
       setErrorMessage('다음 문제를 불러오지 못했습니다.')
     } finally {
@@ -156,6 +171,22 @@ const QuizPage = () => {
   const handleFinish = () => {
     setActiveModal(null)
     navigate('/')
+  }
+
+  const loadQuizSummary = async (scope: 'user' | 'all') => {
+    setSummaryLoading(true)
+    try {
+      const response = await authorizedFetch(`${API_BASE_URL}/quiz/summary?scope=${scope}`)
+      if (!response.ok) {
+        throw new Error('결과를 불러오지 못했습니다.')
+      }
+      const data = (await response.json()) as QuizSummary
+      setQuizSummary(data)
+    } catch (error) {
+      setQuizSummary(null)
+    } finally {
+      setSummaryLoading(false)
+    }
   }
 
   const stickerText = quiz?.has_correct_attempt
@@ -223,19 +254,24 @@ const QuizPage = () => {
       {quiz && (
         <div className="card">
           <div className="quiz-header">
-            <h2>{quiz.title}</h2>
-            {stickerText && <span className={stickerClass}>{stickerText}</span>}
+            <div className="quiz-header-left">
+              {stickerText && <span className={stickerClass}>{stickerText}</span>}
+            </div>
+            {quiz.current_index && quiz.total_count && (
+              <span className="quiz-progress">
+                {quiz.current_index} / {quiz.total_count}
+              </span>
+            )}
           </div>
           <div className="quiz-question">
-            <div className="quiz-index">
-              <span className="quiz-index-label">Q1</span>
+            <div className="quiz-question-heading">
+              <p className="question">Q1. {quiz.question}</p>
               {answerStatus && (
-                <span className={`quiz-index-mark ${answerStatus}`}>
+                <span className={`quiz-result-mark ${answerStatus}`}>
                   {answerStatus === 'correct' ? 'O' : 'X'}
                 </span>
               )}
             </div>
-            <p className="question">Q1. {quiz.question}</p>
             {quiz.link && (
               <div className="quiz-question-source">
                 {renderQuestionLink(quiz.link)}
@@ -320,6 +356,27 @@ const QuizPage = () => {
           <div className="modal-card">
             <h3>모두 완료!</h3>
             <p>{finishedMessage}</p>
+            {summaryLoading && <p className="helper-text">결과를 불러오는 중...</p>}
+            {quizSummary && (
+              <ul className="quiz-summary-list">
+                <li>
+                  <span>총 문제 수</span>
+                  <strong>{quizSummary.total_count}</strong>
+                </li>
+                <li>
+                  <span>맞힌 문제 수</span>
+                  <strong>{quizSummary.correct_count}</strong>
+                </li>
+                <li>
+                  <span>틀린 문제 수</span>
+                  <strong>{quizSummary.wrong_count}</strong>
+                </li>
+                <li>
+                  <span>정답률</span>
+                  <strong>{quizSummary.accuracy_rate}%</strong>
+                </li>
+              </ul>
+            )}
             <div className="modal-actions">
               <button type="button" onClick={handleFinish}>
                 홈

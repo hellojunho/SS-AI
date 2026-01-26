@@ -9,11 +9,13 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 30
     jwt_refresh_expire_minutes: int = 30
+    openai_model: str = "gpt-4o-mini"
+    openai_token_budget: int = 128000
     openai_api_key: str | None = None
     gemini_api_key: str | None = None
     # gemini_model: str = "gemini-2.5-pro"
     gemini_model: str = "gemini-2.5-flash" # gemini-flash-latest
-    cors_allow_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    cors_allow_origins: list[str] = ["http://localhost:5000", "http://127.0.0.1:5000"]
     cors_allow_origin_regex: str | None = None
 
     class Config:

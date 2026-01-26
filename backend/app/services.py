@@ -14,6 +14,7 @@ import requests
 from openai import APIStatusError, OpenAI, RateLimitError
 
 from .config import settings
+from .llm_usage import record_usage
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 ISSUE_LOG_DIR = BASE_DIR / "logs" / "issues"
@@ -118,10 +119,16 @@ def _call_chatgpt(
     for attempt in range(max_retries + 1):
         try:
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=settings.openai_model,
                 messages=messages,
                 temperature=0.2,
             )
+            if response.usage:
+                record_usage(
+                    prompt_tokens=response.usage.prompt_tokens or 0,
+                    completion_tokens=response.usage.completion_tokens or 0,
+                    total_tokens=response.usage.total_tokens or 0,
+                )
             return response.choices[0].message.content or ""
         except RateLimitError as exc:
             if attempt >= max_retries:

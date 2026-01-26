@@ -55,6 +55,20 @@ const MyPage = () => {
       </div>
       <div
         className="card chat-preview"
+        onClick={() => navigate('/mypage/wrong-notes')}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            navigate('/mypage/wrong-notes')
+          }
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        <h2>오답노트</h2>
+        <p>내가 틀렸던 문제만 다시 풀어볼 수 있어요.</p>
+      </div>
+      <div
+        className="card chat-preview"
         onClick={() => navigate('/chat')}
         onKeyDown={(event) => {
           if (event.key === 'Enter') {

@@ -9,7 +9,7 @@ from typing import Callable
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from . import models, schemas
 from .auth import get_current_user, require_admin
@@ -77,6 +77,7 @@ def _quiz_to_response(
     quiz: models.Quiz,
     current_user: models.User | None = None,
     db: Session | None = None,
+    scope: str | None = "user",
 ) -> schemas.QuizResponse:
     if not quiz.questions:
         raise HTTPException(status_code=404, detail="퀴즈 문항을 찾을 수 없습니다.")
@@ -84,6 +85,8 @@ def _quiz_to_response(
     answer_history: list[str] = []
     has_correct_attempt = False
     has_wrong_attempt = False
+    current_index = None
+    total_count = None
     if current_user and db:
         answers = (
             db.query(models.QuizAnswer)
@@ -97,6 +100,16 @@ def _quiz_to_response(
         answer_history = [answer.answer_text for answer in answers]
         has_correct_attempt = any(answer.is_correct for answer in answers)
         has_wrong_attempt = any(answer.is_wrong for answer in answers)
+        if scope:
+            quiz_scope = db.query(models.Quiz.id)
+            if scope == "user":
+                quiz_scope = quiz_scope.filter(models.Quiz.user_id == current_user.id)
+            total_count = quiz_scope.count()
+            if total_count:
+                current_index = (
+                    quiz_scope.filter(models.Quiz.id <= quiz.id)
+                    .count()
+                )
     return schemas.QuizResponse(
         id=quiz.id,
         title=quiz.title,
@@ -113,6 +126,8 @@ def _quiz_to_response(
         answer_history=answer_history,
         tried_at=quiz.tried_at,
         solved_at=quiz.solved_at,
+        current_index=current_index,
+        total_count=total_count,
     )
 
 
@@ -489,7 +504,7 @@ def latest_quiz(
     )
     if not quiz:
         raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
-    return _quiz_to_response(quiz, current_user=current_user, db=db)
+    return _quiz_to_response(quiz, current_user=current_user, db=db, scope="user")
 
 
 @router.get("/all/first", response_model=schemas.QuizResponse)
@@ -500,7 +515,7 @@ def first_quiz_all(
     quiz = db.query(models.Quiz).order_by(models.Quiz.created_at.asc()).first()
     if not quiz:
         raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
-    return _quiz_to_response(quiz, current_user=current_user, db=db)
+    return _quiz_to_response(quiz, current_user=current_user, db=db, scope="all")
 
 
 @router.get("/all/latest", response_model=schemas.QuizResponse)
@@ -511,7 +526,7 @@ def latest_quiz_all(
     quiz = db.query(models.Quiz).order_by(models.Quiz.created_at.desc()).first()
     if not quiz:
         raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
-    return _quiz_to_response(quiz, current_user=current_user, db=db)
+    return _quiz_to_response(quiz, current_user=current_user, db=db, scope="all")
 
 
 @router.get("/next", response_model=schemas.QuizResponse)
@@ -528,7 +543,7 @@ def next_quiz(
     )
     if not quiz:
         raise HTTPException(status_code=404, detail="다음 퀴즈가 없습니다.")
-    return _quiz_to_response(quiz, current_user=current_user, db=db)
+    return _quiz_to_response(quiz, current_user=current_user, db=db, scope="user")
 
 
 @router.get("/all/next", response_model=schemas.QuizResponse)
@@ -545,7 +560,7 @@ def next_quiz_all(
     )
     if not quiz:
         raise HTTPException(status_code=404, detail="다음 퀴즈가 없습니다.")
-    return _quiz_to_response(quiz, current_user=current_user, db=db)
+    return _quiz_to_response(quiz, current_user=current_user, db=db, scope="all")
 
 
 @router.get("/prev", response_model=schemas.QuizResponse)
@@ -562,7 +577,7 @@ def prev_quiz(
     )
     if not quiz:
         raise HTTPException(status_code=404, detail="이전 퀴즈가 없습니다.")
-    return _quiz_to_response(quiz, current_user=current_user, db=db)
+    return _quiz_to_response(quiz, current_user=current_user, db=db, scope="user")
 
 
 @router.get("/all/prev", response_model=schemas.QuizResponse)
@@ -579,7 +594,95 @@ def prev_quiz_all(
     )
     if not quiz:
         raise HTTPException(status_code=404, detail="이전 퀴즈가 없습니다.")
-    return _quiz_to_response(quiz, current_user=current_user, db=db)
+    return _quiz_to_response(quiz, current_user=current_user, db=db, scope="all")
+
+
+@router.get("/summary", response_model=schemas.QuizResultSummary)
+def quiz_summary(
+    scope: str = "user",
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if scope not in {"user", "all"}:
+        raise HTTPException(status_code=400, detail="잘못된 범위입니다.")
+    quiz_scope = db.query(models.Quiz.id)
+    if scope == "user":
+        quiz_scope = quiz_scope.filter(models.Quiz.user_id == current_user.id)
+    total_count = quiz_scope.count()
+    if total_count == 0:
+        return schemas.QuizResultSummary(
+            total_count=0, correct_count=0, wrong_count=0, accuracy_rate=0.0
+        )
+    question_scope = (
+        db.query(models.QuizQuestion.id)
+        .join(models.Quiz, models.QuizQuestion.quiz_id == models.Quiz.id)
+    )
+    if scope == "user":
+        question_scope = question_scope.filter(models.Quiz.user_id == current_user.id)
+    question_ids = question_scope.subquery()
+    correct_ids = (
+        db.query(models.QuizAnswer.quiz_question_id)
+        .filter(
+            models.QuizAnswer.user_id == current_user.id,
+            models.QuizAnswer.is_correct.is_(True),
+            models.QuizAnswer.quiz_question_id.in_(question_ids),
+        )
+        .distinct()
+        .subquery()
+    )
+    correct_count = db.query(correct_ids.c.quiz_question_id).count()
+    wrong_count = (
+        db.query(models.QuizAnswer.quiz_question_id)
+        .filter(
+            models.QuizAnswer.user_id == current_user.id,
+            models.QuizAnswer.is_wrong.is_(True),
+            models.QuizAnswer.quiz_question_id.in_(question_ids),
+        )
+        .filter(~models.QuizAnswer.quiz_question_id.in_(correct_ids))
+        .distinct()
+        .count()
+    )
+    accuracy_rate = round((correct_count / total_count) * 100, 1)
+    return schemas.QuizResultSummary(
+        total_count=total_count,
+        correct_count=correct_count,
+        wrong_count=wrong_count,
+        accuracy_rate=accuracy_rate,
+    )
+
+
+@router.get("/wrong-notes", response_model=list[schemas.WrongNoteQuestion])
+def wrong_notes(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    wrong_entries = (
+        db.query(models.WrongQuestion)
+        .options(joinedload(models.WrongQuestion.question))
+        .filter(models.WrongQuestion.solver_user_id == current_user.id)
+        .order_by(models.WrongQuestion.last_solved_at.desc().nullslast())
+        .all()
+    )
+    results: list[schemas.WrongNoteQuestion] = []
+    for entry in wrong_entries:
+        question = entry.question
+        if not question:
+            continue
+        quiz = db.query(models.Quiz).filter(models.Quiz.id == question.quiz_id).first()
+        results.append(
+            schemas.WrongNoteQuestion(
+                quiz_id=question.quiz_id,
+                question_id=question.id,
+                question=question.question,
+                choices=_parse_choices(question.choices),
+                correct=question.correct,
+                wrong=_parse_choices(question.wrong),
+                explanation=question.explanation,
+                reference=question.reference,
+                link=quiz.link if quiz else "",
+            )
+        )
+    return results
 
 
 @router.get("/{quiz_id}", response_model=schemas.QuizResponse)

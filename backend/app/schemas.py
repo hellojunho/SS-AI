@@ -97,6 +97,8 @@ class QuizResponse(BaseModel):
     answer_history: list[str] = []
     tried_at: datetime | None = None
     solved_at: datetime | None = None
+    current_index: int | None = None
+    total_count: int | None = None
 
     class Config:
         from_attributes = True
@@ -135,6 +137,25 @@ class QuizAnswerResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class QuizResultSummary(BaseModel):
+    total_count: int
+    correct_count: int
+    wrong_count: int
+    accuracy_rate: float
+
+
+class WrongNoteQuestion(BaseModel):
+    quiz_id: int
+    question_id: int
+    question: str
+    choices: list[str]
+    correct: str
+    wrong: list[str]
+    explanation: str
+    reference: str
+    link: str
 
 
 class AdminQuizGenerateRequest(BaseModel):

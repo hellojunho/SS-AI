@@ -40,6 +40,9 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text.trim(),
       );
       widget.onLogin(true);
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
     } catch (error) {
       setState(() {
         _errorMessage = error.toString();

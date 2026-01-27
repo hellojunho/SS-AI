@@ -7,6 +7,8 @@ class Quiz {
     required this.correct,
     required this.explanation,
     required this.reference,
+    required this.hasCorrectAttempt,
+    required this.hasWrongAttempt,
     required this.currentIndex,
     required this.totalCount,
   });
@@ -18,6 +20,8 @@ class Quiz {
   final String correct;
   final String explanation;
   final String reference;
+  final bool hasCorrectAttempt;
+  final bool hasWrongAttempt;
   final int? currentIndex;
   final int? totalCount;
 
@@ -30,6 +34,8 @@ class Quiz {
       correct: json['correct'] as String,
       explanation: json['explanation'] as String,
       reference: json['reference'] as String,
+      hasCorrectAttempt: json['has_correct_attempt'] as bool? ?? false,
+      hasWrongAttempt: json['has_wrong_attempt'] as bool? ?? false,
       currentIndex: json['current_index'] as int?,
       totalCount: json['total_count'] as int?,
     );
@@ -67,6 +73,29 @@ class QuizAnswerResult {
       hasCorrectAttempt: json['has_correct_attempt'] as bool,
       hasWrongAttempt: json['has_wrong_attempt'] as bool,
       answerHistory: (json['answer_history'] as List<dynamic>).cast<String>(),
+    );
+  }
+}
+
+class QuizResultSummary {
+  const QuizResultSummary({
+    required this.totalCount,
+    required this.correctCount,
+    required this.wrongCount,
+    required this.accuracyRate,
+  });
+
+  final int totalCount;
+  final int correctCount;
+  final int wrongCount;
+  final double accuracyRate;
+
+  factory QuizResultSummary.fromJson(Map<String, dynamic> json) {
+    return QuizResultSummary(
+      totalCount: json['total_count'] as int? ?? 0,
+      correctCount: json['correct_count'] as int? ?? 0,
+      wrongCount: json['wrong_count'] as int? ?? 0,
+      accuracyRate: (json['accuracy_rate'] as num?)?.toDouble() ?? 0,
     );
   }
 }

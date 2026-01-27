@@ -6,13 +6,16 @@ class MainBottomNav extends StatelessWidget {
   final int currentIndex;
 
   void _handleTap(BuildContext context, int index) {
-    if (index == currentIndex) return;
     final routeName = switch (index) {
       0 => '/chat',
       1 => '/quiz',
       _ => '/me',
     };
-    Navigator.pushNamedAndRemoveUntil(context, routeName, (route) => route.isFirst);
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    if (currentRoute == routeName) {
+      return;
+    }
+    Navigator.pushNamedAndRemoveUntil(context, routeName, (route) => false);
   }
 
   @override

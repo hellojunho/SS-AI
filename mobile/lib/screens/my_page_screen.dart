@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../models/user.dart';
+import '../widgets/main_bottom_nav.dart';
 
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key, required this.services, required this.onLogout});
@@ -59,43 +60,43 @@ class _MyPageScreenState extends State<MyPageScreen> {
                     ? const Center(child: Text('정보를 불러올 수 없습니다.'))
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.account_circle),
-                          title: Text(_profile!.userName),
-                          subtitle: Text(_profile!.userId),
-                        ),
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.account_circle),
+                            title: Text(_profile!.userName),
+                            subtitle: Text(_profile!.userId),
+                          ),
                           ListTile(
                             leading: const Icon(Icons.email_outlined),
-                          title: Text(_profile!.email),
-                          subtitle: Text('권한: ${_profile!.role}'),
-                        ),
-                        const SizedBox(height: 24),
-                        ListTile(
-                          leading: const Icon(Icons.history),
-                          title: const Text('채팅 내역'),
-                          subtitle: const Text('날짜별로 저장된 대화를 확인하세요.'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () {
-                            Navigator.pushNamed(context, '/me/history');
-                          },
-                        ),
-                        if (_profile!.role == 'admin')
+                            title: Text(_profile!.email),
+                            subtitle: Text('권한: ${_profile!.role}'),
+                          ),
+                          const SizedBox(height: 24),
                           ListTile(
-                            leading: const Icon(Icons.admin_panel_settings),
-                            title: const Text('관리자 페이지'),
-                            subtitle: const Text('사용자/퀴즈/토큰 현황을 확인합니다.'),
+                            leading: const Icon(Icons.history),
+                            title: const Text('채팅 내역'),
+                            subtitle: const Text('날짜별로 저장된 대화를 확인하세요.'),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () {
-                              Navigator.pushNamed(context, '/admin');
+                              Navigator.pushNamed(context, '/me/history');
                             },
                           ),
-                        const SizedBox(height: 16),
-                        OutlinedButton.icon(
-                          onPressed: () async {
-                            await widget.services.authService.logout();
-                            widget.onLogout(false);
-                            if (mounted) {
+                          if (_profile!.role == 'admin')
+                            ListTile(
+                              leading: const Icon(Icons.admin_panel_settings),
+                              title: const Text('관리자 페이지'),
+                              subtitle: const Text('사용자/퀴즈/토큰 현황을 확인합니다.'),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () {
+                                Navigator.pushNamed(context, '/admin');
+                              },
+                            ),
+                          const SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              await widget.services.authService.logout();
+                              widget.onLogout(false);
+                              if (mounted) {
                                 Navigator.popUntil(context, ModalRoute.withName('/'));
                               }
                             },
@@ -105,6 +106,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                         ],
                       ),
       ),
+      bottomNavigationBar: const MainBottomNav(currentIndex: 2),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../models/chat.dart';
+import '../widgets/main_bottom_nav.dart';
 
 class ChatHistoryScreen extends StatefulWidget {
   const ChatHistoryScreen({super.key, required this.services});
@@ -81,6 +82,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                         ),
                       ],
                     ),
+      bottomNavigationBar: const MainBottomNav(currentIndex: 2),
     );
   }
 }
@@ -145,6 +147,7 @@ class _ChatHistoryDetailScreenState extends State<ChatHistoryDetailScreen> {
                         return _ChatBubble(entry: entry);
                       },
                     ),
+      bottomNavigationBar: const MainBottomNav(currentIndex: 2),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../models/admin.dart';
+import '../widgets/main_bottom_nav.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key, required this.services});
@@ -125,8 +126,9 @@ class _AdminScreenState extends State<AdminScreen> {
                         ),
                       ),
                     ],
-                  ),
+                    ),
                 ),
+      bottomNavigationBar: const MainBottomNav(currentIndex: 2),
     );
   }
 }

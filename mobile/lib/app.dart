@@ -67,7 +67,7 @@ class _SSAppState extends State<SSApp> {
           theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
           routes: {
             '/': (context) => authed
-                ? HomeScreen(services: widget.services, onLogout: _setAuthenticated)
+                ? HomeScreen(services: widget.services)
                 : LoginScreen(services: widget.services, onLogin: _setAuthenticated),
             '/signup': (context) => SignupScreen(services: widget.services),
             '/chat': (context) => ChatScreen(services: widget.services),

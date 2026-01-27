@@ -4,7 +4,7 @@ const ACCESS_TOKEN_KEY = 'accessToken'
 const REFRESH_TOKEN_KEY = 'refreshToken'
 const ACCESS_EXP_KEY = 'accessTokenExpiresAt'
 const REFRESH_EXP_KEY = 'refreshTokenExpiresAt'
-const SESSION_MINUTES = 30
+const SESSION_MINUTES = 10080
 
 type TokenResponse = {
   access_token: string

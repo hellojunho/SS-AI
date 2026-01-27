@@ -19,6 +19,33 @@ from .llm_usage import record_usage
 BASE_DIR = Path(__file__).resolve().parents[1]
 ISSUE_LOG_DIR = BASE_DIR / "logs" / "issues"
 URL_REGEX = re.compile(r"https?://[^\s\]\)]+")
+HEADING_REGEX = re.compile(r"(?m)^#{1,6}\s+")
+LIST_REGEX = re.compile(r"(?m)^\s*[-*+]\s+")
+NUMBERED_LIST_REGEX = re.compile(r"(?m)^\s*\d+\.\s+")
+BLOCKQUOTE_REGEX = re.compile(r"(?m)^\s*>\s?")
+HR_REGEX = re.compile(r"(?m)^\s*(?:-{3,}|\*{3,}|_{3,})\s*$")
+
+
+def _strip_markdown(text: str) -> str:
+    cleaned = text
+    cleaned = re.sub(r"```[^\n]*\n", "", cleaned)
+    cleaned = cleaned.replace("```", "")
+    cleaned = re.sub(r"`([^`]+)`", r"\1", cleaned)
+    cleaned = HEADING_REGEX.sub("", cleaned)
+    cleaned = BLOCKQUOTE_REGEX.sub("", cleaned)
+    cleaned = LIST_REGEX.sub("", cleaned)
+    cleaned = NUMBERED_LIST_REGEX.sub("", cleaned)
+    cleaned = HR_REGEX.sub("", cleaned)
+    cleaned = re.sub(r"\*\*(.+?)\*\*", r"\1", cleaned)
+    cleaned = re.sub(r"__(.+?)__", r"\1", cleaned)
+    cleaned = re.sub(r"\*(.+?)\*", r"\1", cleaned)
+    cleaned = re.sub(r"_(.+?)_", r"\1", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
+def sanitize_chat_text(text: str) -> str:
+    return _strip_markdown(text)
 
 
 def _client() -> OpenAI:
@@ -193,8 +220,8 @@ def generate_chat_answer(message: str) -> tuple[str, str]:
     if "출처:" in content:
         answer, reference = content.split("출처:", 1)
         filtered_reference = _filter_references(reference.strip())
-        return answer.strip(), filtered_reference or "출처 정보 없음"
-    return content.strip(), "출처 정보 없음"
+        return _strip_markdown(answer), filtered_reference or "출처 정보 없음"
+    return _strip_markdown(content), "출처 정보 없음"
 
 
 def summarize_chat(content: str, date: datetime) -> str:

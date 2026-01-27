@@ -13,6 +13,7 @@ import 'screens/login_screen.dart';
 import 'screens/my_page_screen.dart';
 import 'screens/quiz_screen.dart';
 import 'screens/signup_screen.dart';
+import 'screens/wrong_notes_screen.dart';
 
 class AppServices {
   AppServices._(this.authService)
@@ -74,6 +75,7 @@ class _SSAppState extends State<SSApp> {
             '/quiz': (context) => QuizScreen(services: widget.services),
             '/me': (context) => MyPageScreen(services: widget.services, onLogout: _setAuthenticated),
             '/me/history': (context) => ChatHistoryScreen(services: widget.services),
+            '/me/wrong-notes': (context) => WrongNotesScreen(services: widget.services),
             '/admin': (context) => AdminScreen(services: widget.services),
           },
         );

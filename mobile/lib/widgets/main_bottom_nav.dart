@@ -23,11 +23,11 @@ class MainBottomNav extends StatelessWidget {
       items: const [
         BottomNavigationBarItem(
           icon: Text('💬', style: TextStyle(fontSize: 20)),
-          label: 'Chat',
+          label: '채팅',
         ),
         BottomNavigationBarItem(
           icon: Text('💡', style: TextStyle(fontSize: 20)),
-          label: 'Quiz',
+          label: '퀴즈',
         ),
         BottomNavigationBarItem(
           icon: Text('👤', style: TextStyle(fontSize: 20)),

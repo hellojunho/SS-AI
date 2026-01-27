@@ -11,11 +11,11 @@ Flutter 기반의 모바일 클라이언트입니다. 기존 FastAPI 백엔드�
 ## 실행
 ```bash
 flutter pub get
-flutter run --dart-define=API_BASE_URL=http://localhost:8000
+flutter run --dart-define=API_BASE_URL=http://localhost:9000
 ```
 
 ## 환경 변수
-- `API_BASE_URL`: FastAPI 서버 주소 (기본값: `http://localhost:8000`)
+- `API_BASE_URL`: FastAPI 서버 주소 (기본값: `http://localhost:9000`)
 
 ## 참고
 - 토큰 만료 처리 로직은 웹 클라이언트와 동일하게 30분 세션 기준으로 갱신됩니다.

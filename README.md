@@ -1,10 +1,11 @@
 # SS-AI Sports Science
 
-FastAPI + React(TypeScript) 기반 스포츠 과학 학습 서비스입니다. Docker Compose로 MySQL, Backend, Frontend를 함께 실행합니다.
+FastAPI + React(TypeScript) + Flutter 기반 스포츠 과학 학습 서비스입니다. Docker Compose로 MySQL, Backend, Frontend를 함께 실행합니다.
 
 ## 구성
 - **Backend**: FastAPI (`/backend`)
 - **Frontend**: React + Vite (`/frontend`)
+- **Mobile**: Flutter (`/mobile`)
 - **DB**: MySQL
 
 ## 준비
@@ -14,9 +15,23 @@ FastAPI + React(TypeScript) 기반 스포츠 과학 학습 서비스입니다. D
    - `/frontend/secrets.json`에 API 주소 등 민감 정보를 저장합니다.
 
 ## 실행
+
+### 웹 서비스 (Backend + Frontend)
 ```bash
 docker-compose up --build
 ```
+
+### 모바일 앱
+```bash
+cd mobile
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://localhost:9000
+```
+
+**참고**: 
+- iOS 시뮬레이터/기기에서는 `localhost` 대신 실제 IP 주소를 사용해야 합니다.
+- Android 에뮬레이터에서는 `http://10.0.2.2:9000` 사용 가능합니다.
+- 실제 기기에서는 `http://<YOUR_IP>:9000`을 사용하세요.
 
 ## 주요 기능
 - JWT 기반 회원가입/로그인
@@ -37,6 +52,9 @@ backend/
     rag_pipeline.py
 frontend/
   src/
+mobile/
+  lib/
+  README.md
 ```
 
 ## 문서 기반 Q&A (RAG)

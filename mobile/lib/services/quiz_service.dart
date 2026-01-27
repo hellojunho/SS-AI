@@ -8,23 +8,25 @@ class QuizService {
 
   final ApiClient _client;
 
-  Future<Quiz> fetchLatest() async {
-    final response = await _client.get('/quiz/latest', authorized: true);
+  Future<Quiz> fetchLatest({bool all = false}) async {
+    final endpoint = all ? '/quiz/all/latest' : '/quiz/latest';
+    final response = await _client.get(endpoint, authorized: true);
     if (response.statusCode != 200) {
       throw Exception('퀴즈를 불러오지 못했습니다.');
     }
     return Quiz.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  Future<Quiz> fetchNext() async {
-    final response = await _client.get('/quiz/next', authorized: true);
+  Future<Quiz> fetchNext({required int currentId, bool all = false}) async {
+    final endpoint = all ? '/quiz/all/next?current_id=$currentId' : '/quiz/next?current_id=$currentId';
+    final response = await _client.get(endpoint, authorized: true);
     if (response.statusCode != 200) {
       throw Exception('다음 퀴즈를 불러오지 못했습니다.');
     }
     return Quiz.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  Future<void> submitAnswer({required int quizId, required String answer}) async {
+  Future<QuizAnswerResult> submitAnswer({required int quizId, required String answer}) async {
     final response = await _client.post(
       '/quiz/$quizId/answer',
       authorized: true,
@@ -33,5 +35,16 @@ class QuizService {
     if (response.statusCode != 200) {
       throw Exception('정답 제출에 실패했습니다.');
     }
+    return QuizAnswerResult.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  Future<Quiz> generateQuiz() async {
+    final response = await _client.post('/quiz/generate', authorized: true);
+    if (response.statusCode != 200) {
+      throw Exception('퀴즈를 생성하지 못했습니다.');
+    }
+    return Quiz.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 }

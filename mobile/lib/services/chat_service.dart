@@ -21,4 +21,24 @@ class ChatService {
       jsonDecode(response.body) as Map<String, dynamic>,
     );
   }
+
+  Future<ChatHistoryDatesResponse> fetchHistoryDates() async {
+    final response = await _client.get('/chat/history', authorized: true);
+    if (response.statusCode != 200) {
+      throw Exception('채팅 내역 날짜를 불러오지 못했습니다.');
+    }
+    return ChatHistoryDatesResponse.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  Future<ChatHistoryResponse> fetchHistory(String date) async {
+    final response = await _client.get('/chat/history/$date', authorized: true);
+    if (response.statusCode != 200) {
+      throw Exception('채팅 내역을 불러오지 못했습니다.');
+    }
+    return ChatHistoryResponse.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
 }

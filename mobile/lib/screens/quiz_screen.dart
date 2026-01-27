@@ -12,34 +12,98 @@ class QuizScreen extends StatefulWidget {
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
-class _QuizScreenState extends State<QuizScreen> {
-  Quiz? _quiz;
+class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  Quiz? _userQuiz;
+  Quiz? _allQuiz;
   bool _isLoading = true;
-  String? _error;
-  String? _selectedAnswer;
-  String? _statusMessage;
+  bool _isSubmitting = false;
+  String? _userError;
+  String? _allError;
+  String? _selectedAnswerUser;
+  String? _selectedAnswerAll;
+  String? _statusMessageUser;
+  String? _statusMessageAll;
 
   @override
   void initState() {
     super.initState();
-    _loadLatest();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_handleTabChange);
+    _loadLatest(all: false);
   }
 
-  Future<void> _loadLatest() async {
+  @override
+  void dispose() {
+    _tabController.removeListener(_handleTabChange);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _handleTabChange() {
+    if (_tabController.indexIsChanging) return;
+    if (_tabController.index == 1 && _allQuiz == null && _allError == null) {
+      _loadLatest(all: true);
+    }
+  }
+
+  bool get _isAllScope => _tabController.index == 1;
+
+  Quiz? get _currentQuiz => _isAllScope ? _allQuiz : _userQuiz;
+
+  String? get _currentError => _isAllScope ? _allError : _userError;
+
+  String? get _selectedAnswer => _isAllScope ? _selectedAnswerAll : _selectedAnswerUser;
+
+  String? get _statusMessage => _isAllScope ? _statusMessageAll : _statusMessageUser;
+
+  void _setSelectedAnswer(String? value) {
+    setState(() {
+      if (_isAllScope) {
+        _selectedAnswerAll = value;
+      } else {
+        _selectedAnswerUser = value;
+      }
+    });
+  }
+
+  void _setStatusMessage(String? message) {
+    if (_isAllScope) {
+      _statusMessageAll = message;
+    } else {
+      _statusMessageUser = message;
+    }
+  }
+
+  Future<void> _loadLatest({required bool all}) async {
     setState(() {
       _isLoading = true;
-      _error = null;
+      if (all) {
+        _allError = null;
+      } else {
+        _userError = null;
+      }
     });
     try {
-      final quiz = await widget.services.quizService.fetchLatest();
+      final quiz = await widget.services.quizService.fetchLatest(all: all);
       setState(() {
-        _quiz = quiz;
-        _selectedAnswer = null;
-        _statusMessage = null;
+        if (all) {
+          _allQuiz = quiz;
+          _selectedAnswerAll = null;
+          _statusMessageAll = null;
+        } else {
+          _userQuiz = quiz;
+          _selectedAnswerUser = null;
+          _statusMessageUser = null;
+        }
       });
     } catch (error) {
       setState(() {
-        _error = error.toString();
+        if (all) {
+          _allError = error.toString();
+        } else {
+          _userError = error.toString();
+        }
       });
     } finally {
       setState(() {
@@ -49,20 +113,39 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Future<void> _loadNext() async {
+    final quiz = _currentQuiz;
+    if (quiz == null) return;
     setState(() {
       _isLoading = true;
-      _error = null;
-      _statusMessage = null;
+      if (_isAllScope) {
+        _allError = null;
+        _statusMessageAll = null;
+      } else {
+        _userError = null;
+        _statusMessageUser = null;
+      }
     });
     try {
-      final quiz = await widget.services.quizService.fetchNext();
+      final nextQuiz = await widget.services.quizService.fetchNext(
+        currentId: quiz.id,
+        all: _isAllScope,
+      );
       setState(() {
-        _quiz = quiz;
-        _selectedAnswer = null;
+        if (_isAllScope) {
+          _allQuiz = nextQuiz;
+          _selectedAnswerAll = null;
+        } else {
+          _userQuiz = nextQuiz;
+          _selectedAnswerUser = null;
+        }
       });
     } catch (error) {
       setState(() {
-        _error = error.toString();
+        if (_isAllScope) {
+          _allError = error.toString();
+        } else {
+          _userError = error.toString();
+        }
       });
     } finally {
       setState(() {
@@ -72,23 +155,75 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Future<void> _submitAnswer() async {
-    final quiz = _quiz;
-    if (quiz == null || _selectedAnswer == null) return;
+    final quiz = _currentQuiz;
+    final selected = _selectedAnswer;
+    if (quiz == null || selected == null) return;
     setState(() {
-      _isLoading = true;
-      _statusMessage = null;
+      _isSubmitting = true;
+      _setStatusMessage(null);
     });
     try {
-      await widget.services.quizService.submitAnswer(
+      final result = await widget.services.quizService.submitAnswer(
         quizId: quiz.id,
-        answer: _selectedAnswer!,
+        answer: selected,
       );
+      final isCorrect = result.isCorrect;
       setState(() {
-        _statusMessage = '제출 완료! 정답: ${quiz.correct}';
+        _setStatusMessage(isCorrect ? '정답입니다!' : '오답입니다.');
+      });
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text(isCorrect ? '정답' : '오답'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(isCorrect ? '잘했어요! 🎉' : '아쉽지만 다시 도전해 보세요.'),
+                const SizedBox(height: 12),
+                Text('정답: ${quiz.correct}'),
+                if (result.answerHistory.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('답변 기록: ${result.answerHistory.join(', ')}'),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('확인'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (error) {
+      setState(() {
+        _setStatusMessage(error.toString());
+      });
+    } finally {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
+  }
+
+  Future<void> _generateQuiz() async {
+    setState(() {
+      _isLoading = true;
+      _userError = null;
+    });
+    try {
+      final quiz = await widget.services.quizService.generateQuiz();
+      setState(() {
+        _userQuiz = quiz;
+        _selectedAnswerUser = null;
+        _statusMessageUser = null;
       });
     } catch (error) {
       setState(() {
-        _statusMessage = error.toString();
+        _userError = error.toString();
       });
     } finally {
       setState(() {
@@ -100,29 +235,64 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('퀴즈 학습')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
-                : _quiz == null
-                    ? const Center(child: Text('퀴즈가 없습니다.'))
-                    : _QuizDetail(
-                        quiz: _quiz!,
-                        selectedAnswer: _selectedAnswer,
-                        statusMessage: _statusMessage,
-                        onSelectAnswer: (value) => setState(() => _selectedAnswer = value),
-                        onSubmit: _submitAnswer,
-                        onNext: _loadNext,
+      appBar: AppBar(
+        title: const Text('퀴즈 학습'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: '나의 퀴즈'),
+            Tab(text: '전체 퀴즈'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildQuizPane(all: false),
+          _buildQuizPane(all: true),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuizPane({required bool all}) {
+    final quiz = all ? _allQuiz : _userQuiz;
+    final error = all ? _allError : _userError;
+    final selectedAnswer = all ? _selectedAnswerAll : _selectedAnswerUser;
+    final statusMessage = all ? _statusMessageAll : _statusMessageUser;
+    final isCurrentTab = _isAllScope == all;
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: _isLoading && isCurrentTab
+          ? const Center(child: CircularProgressIndicator())
+          : error != null
+              ? Center(child: Text(error, style: const TextStyle(color: Colors.red)))
+              : quiz == null
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(all ? '전체 퀴즈가 없습니다.' : '아직 생성된 퀴즈가 없습니다.'),
+                          const SizedBox(height: 12),
+                          if (!all)
+                            FilledButton.icon(
+                              onPressed: _generateQuiz,
+                              icon: const Icon(Icons.auto_awesome),
+                              label: const Text('퀴즈 생성하기'),
+                            ),
+                        ],
                       ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _loadLatest,
-        label: const Text('최신 퀴즈'),
-        icon: const Icon(Icons.refresh),
-      ),
+                    )
+                  : _QuizDetail(
+                      quiz: quiz,
+                      selectedAnswer: selectedAnswer,
+                      statusMessage: statusMessage,
+                      isSubmitting: _isSubmitting && isCurrentTab,
+                      onSelectAnswer: (value) => _setSelectedAnswer(value),
+                      onSubmit: _submitAnswer,
+                      onNext: _loadNext,
+                      onRefresh: () => _loadLatest(all: all),
+                    ),
     );
   }
 }
@@ -132,24 +302,38 @@ class _QuizDetail extends StatelessWidget {
     required this.quiz,
     required this.selectedAnswer,
     required this.statusMessage,
+    required this.isSubmitting,
     required this.onSelectAnswer,
     required this.onSubmit,
     required this.onNext,
+    required this.onRefresh,
   });
 
   final Quiz quiz;
   final String? selectedAnswer;
   final String? statusMessage;
+  final bool isSubmitting;
   final ValueChanged<String> onSelectAnswer;
   final VoidCallback onSubmit;
   final VoidCallback onNext;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(quiz.title, style: Theme.of(context).textTheme.headlineSmall),
+        Row(
+          children: [
+            Expanded(
+              child: Text(quiz.title, style: Theme.of(context).textTheme.headlineSmall),
+            ),
+            IconButton(
+              onPressed: onRefresh,
+              icon: const Icon(Icons.refresh),
+            ),
+          ],
+        ),
         if (quiz.currentIndex != null && quiz.totalCount != null)
           Text('문항 ${quiz.currentIndex} / ${quiz.totalCount}'),
         const SizedBox(height: 16),
@@ -167,8 +351,14 @@ class _QuizDetail extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         FilledButton(
-          onPressed: selectedAnswer == null ? null : onSubmit,
-          child: const Text('정답 제출'),
+          onPressed: selectedAnswer == null || isSubmitting ? null : onSubmit,
+          child: isSubmitting
+              ? const SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('정답 제출'),
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(

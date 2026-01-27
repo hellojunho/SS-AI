@@ -35,3 +35,38 @@ class Quiz {
     );
   }
 }
+
+class QuizAnswerResult {
+  const QuizAnswerResult({
+    required this.quizId,
+    required this.questionId,
+    required this.answer,
+    required this.isCorrect,
+    required this.isWrong,
+    required this.hasCorrectAttempt,
+    required this.hasWrongAttempt,
+    required this.answerHistory,
+  });
+
+  final int quizId;
+  final int questionId;
+  final String answer;
+  final bool isCorrect;
+  final bool isWrong;
+  final bool hasCorrectAttempt;
+  final bool hasWrongAttempt;
+  final List<String> answerHistory;
+
+  factory QuizAnswerResult.fromJson(Map<String, dynamic> json) {
+    return QuizAnswerResult(
+      quizId: json['quiz_id'] as int,
+      questionId: json['question_id'] as int,
+      answer: json['answer'] as String,
+      isCorrect: json['is_correct'] as bool,
+      isWrong: json['is_wrong'] as bool,
+      hasCorrectAttempt: json['has_correct_attempt'] as bool,
+      hasWrongAttempt: json['has_wrong_attempt'] as bool,
+      answerHistory: (json['answer_history'] as List<dynamic>).cast<String>(),
+    );
+  }
+}

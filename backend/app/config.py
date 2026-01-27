@@ -16,8 +16,9 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     # gemini_model: str = "gemini-2.5-pro"
     gemini_model: str = "gemini-2.5-flash" # gemini-flash-latest
-    cors_allow_origins: list[str] = ["*"]
-    cors_allow_origin_regex: str | None = None
+    cors_allow_origins: list[str] = []
+    cors_allow_origin_regex: str | None = r"^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$"
+    cors_allow_credentials: bool = False
 
     class Config:
         env_file = ".env"

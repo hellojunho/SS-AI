@@ -25,7 +25,7 @@ docker-compose up --build
 ```bash
 cd mobile
 flutter pub get
-flutter run --dart-define=API_BASE_URL=http://localhost:9000
+flutter run --dart-define=API_BASE_URL=http://localhost:5001
 ```
 
 ### 모바일 앱 (Docker Compose)
@@ -35,8 +35,8 @@ docker-compose up --build mobile
 
 **참고**: 
 - iOS 시뮬레이터/기기에서는 `localhost` 대신 실제 IP 주소를 사용해야 합니다.
-- Android 에뮬레이터에서는 `http://10.0.2.2:9000` 사용 가능합니다.
-- 실제 기기에서는 `http://<YOUR_IP>:9000`을 사용하세요.
+- Android 에뮬레이터에서는 `http://10.0.2.2:5001` 사용 가능합니다.
+- 실제 기기에서는 `http://<YOUR_IP>:5001`을 사용하세요.
 
 ## 주요 기능
 - JWT 기반 회원가입/로그인

@@ -9,6 +9,7 @@ from typing import Callable
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Session, joinedload
 
 from . import models, schemas
@@ -620,26 +621,39 @@ def quiz_summary(
     if scope == "user":
         question_scope = question_scope.filter(models.Quiz.user_id == current_user.id)
     question_ids = question_scope.subquery()
-    correct_ids = (
-        db.query(models.QuizAnswer.quiz_question_id)
+    first_attempts = (
+        db.query(
+            models.QuizAnswer.quiz_question_id.label("quiz_question_id"),
+            func.min(models.QuizAnswer.created_at).label("first_created_at"),
+        )
         .filter(
             models.QuizAnswer.user_id == current_user.id,
-            models.QuizAnswer.is_correct.is_(True),
             models.QuizAnswer.quiz_question_id.in_(question_ids),
         )
-        .distinct()
+        .group_by(models.QuizAnswer.quiz_question_id)
         .subquery()
     )
-    correct_count = db.query(correct_ids.c.quiz_question_id).count()
-    wrong_count = (
-        db.query(models.QuizAnswer.quiz_question_id)
-        .filter(
-            models.QuizAnswer.user_id == current_user.id,
-            models.QuizAnswer.is_wrong.is_(True),
-            models.QuizAnswer.quiz_question_id.in_(question_ids),
+    first_answers = (
+        db.query(models.QuizAnswer)
+        .join(
+            first_attempts,
+            and_(
+                models.QuizAnswer.quiz_question_id
+                == first_attempts.c.quiz_question_id,
+                models.QuizAnswer.created_at
+                == first_attempts.c.first_created_at,
+            ),
         )
-        .filter(~models.QuizAnswer.quiz_question_id.in_(correct_ids))
-        .distinct()
+        .subquery()
+    )
+    correct_count = (
+        db.query(first_answers.c.quiz_question_id)
+        .filter(first_answers.c.is_correct.is_(True))
+        .count()
+    )
+    wrong_count = (
+        db.query(first_answers.c.quiz_question_id)
+        .filter(first_answers.c.is_wrong.is_(True))
         .count()
     )
     accuracy_rate = round((correct_count / total_count) * 100, 1)

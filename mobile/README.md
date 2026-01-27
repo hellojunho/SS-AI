@@ -14,6 +14,11 @@ flutter pub get
 flutter run --dart-define=API_BASE_URL=http://localhost:9000
 ```
 
+## Docker Compose 실행
+```bash
+docker-compose up --build mobile
+```
+
 ## 환경 변수
 - `API_BASE_URL`: FastAPI 서버 주소 (기본값: `http://localhost:9000`)
 

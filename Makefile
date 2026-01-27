@@ -24,6 +24,8 @@ update:
 
 mobile-update:
 	docker compose down
-	git pull origin main
-	docker compose up -d --build
-	cd mobile && flutter pub get
+	git pull
+	# Start only the mobile service (rebuild it) and run in background
+	docker compose up -d --build mobile
+	@echo "Mobile service rebuilt and started (background)."
+	@echo "To update Flutter deps locally: cd mobile && flutter pub get"

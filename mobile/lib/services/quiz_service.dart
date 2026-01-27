@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../models/quiz.dart';
+import '../models/wrong_note.dart';
 import 'api_client.dart';
 
 class QuizService {
@@ -8,9 +9,12 @@ class QuizService {
 
   final ApiClient _client;
 
-  Future<Quiz> fetchLatest({bool all = false}) async {
+  Future<Quiz?> fetchLatest({bool all = false}) async {
     final endpoint = all ? '/quiz/all/latest' : '/quiz/latest';
     final response = await _client.get(endpoint, authorized: true);
+    if (response.statusCode == 404) {
+      return null;
+    }
     if (response.statusCode != 200) {
       throw Exception('퀴즈를 불러오지 못했습니다.');
     }
@@ -46,5 +50,16 @@ class QuizService {
       throw Exception('퀴즈를 생성하지 못했습니다.');
     }
     return Quiz.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<List<WrongNoteQuestion>> fetchWrongNotes() async {
+    final response = await _client.get('/quiz/wrong-notes', authorized: true);
+    if (response.statusCode != 200) {
+      throw Exception('오답노트를 불러오지 못했습니다.');
+    }
+    final payload = jsonDecode(response.body) as List<dynamic>;
+    return payload
+        .map((item) => WrongNoteQuestion.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 }

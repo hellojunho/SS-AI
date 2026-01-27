@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'services/api_client.dart';
+import 'services/admin_service.dart';
 import 'services/auth_service.dart';
 import 'services/chat_service.dart';
 import 'services/quiz_service.dart';
+import 'screens/admin_screen.dart';
 import 'screens/chat_screen.dart';
+import 'screens/chat_history_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/my_page_screen.dart';
@@ -15,7 +18,8 @@ class AppServices {
   AppServices._(this.authService)
       : apiClient = ApiClient(authService),
         chatService = ChatService(ApiClient(authService)),
-        quizService = QuizService(ApiClient(authService));
+        quizService = QuizService(ApiClient(authService)),
+        adminService = AdminService(ApiClient(authService));
 
   factory AppServices() => AppServices._(AuthService());
 
@@ -23,6 +27,7 @@ class AppServices {
   final ApiClient apiClient;
   final ChatService chatService;
   final QuizService quizService;
+  final AdminService adminService;
 }
 
 class SSApp extends StatefulWidget {
@@ -68,6 +73,8 @@ class _SSAppState extends State<SSApp> {
             '/chat': (context) => ChatScreen(services: widget.services),
             '/quiz': (context) => QuizScreen(services: widget.services),
             '/me': (context) => MyPageScreen(services: widget.services, onLogout: _setAuthenticated),
+            '/me/history': (context) => ChatHistoryScreen(services: widget.services),
+            '/admin': (context) => AdminScreen(services: widget.services),
           },
         );
       },

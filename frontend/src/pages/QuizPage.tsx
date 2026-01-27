@@ -41,6 +41,8 @@ const QuizPage = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [quizSummary, setQuizSummary] = useState<QuizSummary | null>(null)
   const [summaryLoading, setSummaryLoading] = useState(false)
+  const [quizIndex, setQuizIndex] = useState<number | null>(null)
+  const [quizTotal, setQuizTotal] = useState<number | null>(null)
 
   const loadQuiz = async () => {
     setLoading(true)
@@ -52,12 +54,16 @@ const QuizPage = () => {
       }
       const data = await response.json()
       setQuiz(data)
+      setQuizIndex(1)
+      setQuizTotal(data.total_count ?? null)
       setAnswerStatus(null)
       setActiveModal(null)
       setFinishedMessage(null)
       setQuizSummary(null)
     } catch (error) {
       setQuiz(null)
+      setQuizIndex(null)
+      setQuizTotal(null)
       setErrorMessage('퀴즈를 가져오지 못했습니다. 로그인 상태를 확인해주세요.')
     } finally {
       setLoading(false)
@@ -123,6 +129,8 @@ const QuizPage = () => {
       }
       const data = await response.json()
       setQuiz(data)
+      setQuizIndex((prev) => (prev ? Math.max(prev - 1, 1) : 1))
+      setQuizTotal(data.total_count ?? null)
       setAnswerStatus(null)
       setActiveModal(null)
       setFinishedMessage(null)
@@ -148,6 +156,8 @@ const QuizPage = () => {
       }
       const data = await response.json()
       setQuiz(data)
+      setQuizIndex((prev) => (prev ? prev + 1 : 1))
+      setQuizTotal(data.total_count ?? null)
       setAnswerStatus(null)
       setActiveModal(null)
       setFinishedMessage(null)
@@ -257,15 +267,15 @@ const QuizPage = () => {
             <div className="quiz-header-left">
               {stickerText && <span className={stickerClass}>{stickerText}</span>}
             </div>
-            {quiz.current_index && quiz.total_count && (
+            {quizIndex && quizTotal && (
               <span className="quiz-progress">
-                {quiz.current_index} / {quiz.total_count}
+                {quizIndex} / {quizTotal}
               </span>
             )}
           </div>
           <div className="quiz-question">
             <div className="quiz-question-heading">
-              <p className="question">Q1. {quiz.question}</p>
+              <p className="question">Q{quizIndex ?? 1}. {quiz.question}</p>
               {answerStatus && (
                 <span className={`quiz-result-mark ${answerStatus}`}>
                   {answerStatus === 'correct' ? 'O' : 'X'}

@@ -20,3 +20,10 @@ update:
 	docker compose down
 	git pull origin main
 	docker compose up --build
+
+
+mobile-update:
+	docker compose down
+	git pull origin main
+	docker compose up -d --build
+	cd mobile && flutter pub get

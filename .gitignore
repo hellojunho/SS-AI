@@ -10,3 +10,9 @@ chat/
 
 logs/
 docs/
+
+.dart_tool/
+.flutter-plugins
+build/
+.flutter-plugins-dependencies
+pubspec.lock

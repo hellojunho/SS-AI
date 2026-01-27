@@ -144,14 +144,18 @@ const QuizPage = () => {
 
   const handleNextQuiz = async () => {
     if (!quiz) return
+    if (quizIndex && quizTotal && quizIndex + 1 > quizTotal) {
+      setFinishedMessage('오늘의 문제를 모두 풀었어요!')
+      setActiveModal('finished')
+      await loadQuizSummary('user')
+      return
+    }
     setLoading(true)
     setErrorMessage(null)
     try {
       const response = await authorizedFetch(`${API_BASE_URL}/quiz/next?current_id=${quiz.id}`)
       if (!response.ok) {
-        setFinishedMessage('오늘의 문제를 모두 풀었어요!')
-        setActiveModal('finished')
-        await loadQuizSummary('user')
+        setErrorMessage('다음 문제를 불러오지 못했습니다.')
         return
       }
       const data = await response.json()

@@ -1,6 +1,6 @@
 const String apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://localhost:9000',
+  defaultValue: 'http://localhost:5001',
 );
 
 const int sessionMinutes = 30;

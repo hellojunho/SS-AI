@@ -41,5 +41,17 @@ services:
     depends_on:
       - backend
 
+  mobile:
+    build:
+      context: ./mobile
+    environment:
+      - API_BASE_URL=http://localhost:9000
+    volumes:
+      - ./mobile:/app
+    ports:
+      - "9000:9000"
+    depends_on:
+      - backend
+
 volumes:
   db_data:

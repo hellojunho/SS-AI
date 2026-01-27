@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../models/chat.dart';
+import '../widgets/main_bottom_nav.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, required this.services});
@@ -133,6 +134,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: const MainBottomNav(currentIndex: 0),
     );
   }
 }

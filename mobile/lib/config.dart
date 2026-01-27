@@ -12,4 +12,4 @@ String get apiBaseUrl {
   return 'http://localhost:5001';
 }
 
-const int sessionMinutes = 30;
+const int sessionMinutes = 10080;

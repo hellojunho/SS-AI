@@ -7,8 +7,8 @@ class Settings(BaseSettings):
     database_connect_retry_seconds: float = 1.0
     jwt_secret_key: str = "change-me"
     jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 30
-    jwt_refresh_expire_minutes: int = 30
+    jwt_expire_minutes: int = 10080
+    jwt_refresh_expire_minutes: int = 10080
     openai_model: str = "gpt-4o-mini"
     openai_token_budget: int = 128000
     openai_usage_endpoint: str = "https://api.openai.com/v1/usage"

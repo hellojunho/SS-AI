@@ -504,7 +504,10 @@ def latest_quiz(
         .first()
     )
     if not quiz:
-        raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
+        quiz = db.query(models.Quiz).order_by(models.Quiz.created_at.desc()).first()
+        if not quiz:
+            raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
+        return _quiz_to_response(quiz, current_user=current_user, db=db, scope="all")
     return _quiz_to_response(quiz, current_user=current_user, db=db, scope="user")
 
 

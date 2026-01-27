@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../app.dart';
+import '../widgets/main_bottom_nav.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key, required this.services, required this.onLogout});
+  const HomeScreen({super.key, required this.services});
 
   final AppServices services;
-  final ValueChanged<bool> onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -43,18 +43,10 @@ class HomeScreen extends StatelessWidget {
               icon: Icons.quiz_outlined,
               onTap: () => Navigator.pushNamed(context, '/quiz'),
             ),
-            const Spacer(),
-            OutlinedButton.icon(
-              onPressed: () async {
-                await services.authService.logout();
-                onLogout(false);
-              },
-              icon: const Icon(Icons.logout),
-              label: const Text('로그아웃'),
-            ),
           ],
         ),
       ),
+      bottomNavigationBar: const MainBottomNav(currentIndex: 0),
     );
   }
 }

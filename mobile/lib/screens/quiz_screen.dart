@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../models/quiz.dart';
+import '../widgets/main_bottom_nav.dart';
 
 class QuizScreen extends StatefulWidget {
   const QuizScreen({super.key, required this.services});
@@ -252,6 +253,7 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
           _buildQuizPane(all: true),
         ],
       ),
+      bottomNavigationBar: const MainBottomNav(currentIndex: 1),
     );
   }
 

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 from .auth import get_current_user
 from .db import get_db
-from .services import generate_chat_answer, summarize_chat
+from .services import generate_chat_answer, sanitize_chat_text, summarize_chat
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -37,6 +37,9 @@ def _parse_chat_file(file_path: Path) -> List[schemas.ChatHistoryEntry]:
             entries[-1].content = f"{entries[-1].content}\n{content}"
         elif entries:
             entries[-1].content = f"{entries[-1].content}\n{content}"
+    for entry in entries:
+        if entry.role == "gpt":
+            entry.content = sanitize_chat_text(entry.content)
     return entries
 
 

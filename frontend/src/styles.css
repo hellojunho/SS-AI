@@ -93,6 +93,14 @@ h1 {
   gap: 8px;
 }
 
+.admin-users-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 /* Compact admin layout to fit more rows on screen without scrolling */
 .admin-compact {
   gap: 8px;
@@ -298,51 +306,57 @@ button.ghost:hover {
 .admin-traffic-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .admin-traffic-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .admin-traffic-title {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .admin-traffic-header h2 {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+  font-size: 16px;
+}
+
+.admin-traffic-title p {
+  font-size: 12px;
+  color: #6b7280;
 }
 
 .admin-traffic-legend {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: #4b5563;
 }
 
 .admin-traffic-tabs {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 4px;
-  background: #f3f4f6;
-  border-radius: 999px;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 3px;
+  background: #eef2f7;
+  border-radius: 14px;
 }
 
 .admin-traffic-tab {
   border: none;
   background: transparent;
-  padding: 6px 14px;
-  border-radius: 999px;
-  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
   color: #6b7280;
   cursor: pointer;
 }
@@ -360,8 +374,8 @@ button.ghost:hover {
 }
 
 .admin-traffic-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   display: inline-block;
 }
@@ -383,6 +397,7 @@ button.ghost:hover {
 
 .admin-traffic-message {
   color: #6b7280;
+  font-size: 12px;
 }
 
 .admin-traffic-chart {
@@ -392,8 +407,8 @@ button.ghost:hover {
 .admin-traffic-columns {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 6px;
-  min-width: 520px;
+  gap: 4px;
+  min-width: 460px;
   align-items: end;
 }
 
@@ -401,25 +416,25 @@ button.ghost:hover {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .admin-traffic-column-bars {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 3px;
-  height: 120px;
+  gap: 2px;
+  height: 84px;
 }
 
 .admin-traffic-bar {
-  width: 7px;
-  border-radius: 6px;
-  min-height: 5px;
+  width: 4px;
+  border-radius: 4px;
+  min-height: 4px;
 }
 
 .admin-traffic-column-label {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: #4b5563;
   text-align: center;
 }
@@ -427,28 +442,32 @@ button.ghost:hover {
 @media (max-width: 640px) {
   .admin-traffic-tabs {
     gap: 4px;
-    padding: 3px;
+    padding: 2px;
   }
 
   .admin-traffic-tab {
-    padding: 5px 10px;
-    font-size: 0.75rem;
+    padding: 4px 8px;
+    font-size: 0.7rem;
   }
 
   .admin-traffic-columns {
-    gap: 4px;
-    min-width: 460px;
+    gap: 2px;
+    min-width: 360px;
   }
 
   .admin-traffic-column-bars {
-    gap: 2px;
-    height: 96px;
+    gap: 1px;
+    height: 60px;
   }
 
   .admin-traffic-bar {
-    width: 5px;
-    border-radius: 4px;
-    min-height: 4px;
+    width: 2px;
+    border-radius: 2px;
+    min-height: 2px;
+  }
+
+  .admin-traffic-column-label {
+    font-size: 0.6rem;
   }
 }
 

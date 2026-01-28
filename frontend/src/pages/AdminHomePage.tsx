@@ -8,9 +8,12 @@ import { useAdminStatus } from '../hooks/useAdminStatus'
 
 type TrafficStats = {
   period: 'day' | 'week' | 'month' | 'year'
-  signups: number
-  logins: number
-  withdrawals: number
+  buckets: {
+    label: string
+    signups: number
+    logins: number
+    withdrawals: number
+  }[]
 }
 
 const AdminHomePage = () => {
@@ -19,6 +22,7 @@ const AdminHomePage = () => {
   const [trafficStats, setTrafficStats] = useState<TrafficStats[]>([])
   const [trafficError, setTrafficError] = useState<string | null>(null)
   const [trafficLoading, setTrafficLoading] = useState(false)
+  const [selectedPeriod, setSelectedPeriod] = useState<TrafficStats['period']>('day')
 
   useEffect(() => {
     if (status !== 'allowed') return
@@ -41,12 +45,17 @@ const AdminHomePage = () => {
     loadTraffic()
   }, [status])
 
+  const selectedStats = useMemo(
+    () => trafficStats.find((stat) => stat.period === selectedPeriod),
+    [trafficStats, selectedPeriod],
+  )
+
   const maxTrafficValue = useMemo(() => {
-    if (!trafficStats.length) return 0
+    if (!selectedStats?.buckets.length) return 0
     return Math.max(
-      ...trafficStats.flatMap((stat) => [stat.signups, stat.logins, stat.withdrawals]),
+      ...selectedStats.buckets.flatMap((bucket) => [bucket.signups, bucket.logins, bucket.withdrawals]),
     )
-  }, [trafficStats])
+  }, [selectedStats])
 
   const labelMap: Record<TrafficStats['period'], string> = {
     day: '일',
@@ -54,6 +63,12 @@ const AdminHomePage = () => {
     month: '월',
     year: '년',
   }
+
+  const trafficSeries = [
+    { type: 'signup', label: '신규', key: 'signups' },
+    { type: 'login', label: '로그인', key: 'logins' },
+    { type: 'withdrawal', label: '탈퇴', key: 'withdrawals' },
+  ] as const
 
   if (status === 'loading') {
     return (
@@ -91,9 +106,21 @@ const AdminHomePage = () => {
       <AdminNav />
       <div className="card admin-traffic-card">
         <div className="admin-traffic-header">
-          <div>
+          <div className="admin-traffic-title">
             <h2>사용자 유입량</h2>
             <p>일/주/월/년 단위 신규 가입, 로그인, 탈퇴 수를 확인하세요.</p>
+            <div className="admin-traffic-periods">
+              {(Object.keys(labelMap) as TrafficStats['period'][]).map((period) => (
+                <button
+                  key={period}
+                  type="button"
+                  className={`admin-traffic-period-button${selectedPeriod === period ? ' is-active' : ''}`}
+                  onClick={() => setSelectedPeriod(period)}
+                >
+                  {labelMap[period]}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="admin-traffic-legend">
             <span className="admin-traffic-legend-item">
@@ -114,31 +141,27 @@ const AdminHomePage = () => {
         {!trafficLoading && trafficError && <p className="admin-traffic-message error-text">{trafficError}</p>}
         {!trafficLoading && !trafficError && (
           <div className="admin-traffic-chart">
-            {trafficStats.map((stat) => (
-              <div key={stat.period} className="admin-traffic-row">
-                <div className="admin-traffic-label">{labelMap[stat.period]}</div>
-                <div className="admin-traffic-bars">
-                  {(
-                    [
-                      { type: 'signup', value: stat.signups, label: '신규' },
-                      { type: 'login', value: stat.logins, label: '로그인' },
-                      { type: 'withdrawal', value: stat.withdrawals, label: '탈퇴' },
-                    ] as const
-                  ).map((item) => {
-                    const height = maxTrafficValue ? Math.max((item.value / maxTrafficValue) * 100, 6) : 6
-                    return (
-                      <div key={item.type} className="admin-traffic-bar-group">
+            <div className="admin-traffic-columns">
+              {(selectedStats?.buckets ?? []).map((bucket, index) => (
+                <div key={`${bucket.label}-${index}`} className="admin-traffic-column">
+                  <div className="admin-traffic-column-bars">
+                    {trafficSeries.map((series) => {
+                      const value = bucket[series.key]
+                      const height = maxTrafficValue ? Math.max((value / maxTrafficValue) * 100, 6) : 6
+                      return (
                         <div
-                          className={`admin-traffic-bar admin-traffic-bar--${item.type}`}
+                          key={series.type}
+                          className={`admin-traffic-bar admin-traffic-bar--${series.type}`}
                           style={{ height: `${height}%` }}
+                          title={`${bucket.label} ${series.label}: ${value}`}
                         />
-                        <span className="admin-traffic-bar-value">{item.value}</span>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
+                  <span className="admin-traffic-column-label">{bucket.label}</span>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>

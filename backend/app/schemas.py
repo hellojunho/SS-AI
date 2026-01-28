@@ -209,8 +209,13 @@ class AdminQuizUpdate(BaseModel):
     reference: str | None = None
 
 
-class AdminTrafficStats(BaseModel):
-    period: str
+class AdminTrafficBucket(BaseModel):
+    label: str
     signups: int
     logins: int
     withdrawals: int
+
+
+class AdminTrafficStats(BaseModel):
+    period: str
+    buckets: list[AdminTrafficBucket]

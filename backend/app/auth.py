@@ -127,6 +127,15 @@ def admin_user_traffic(
     current_user: models.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    def add_months(base: datetime, months: int) -> datetime:
+        total_month = base.month - 1 + months
+        year = base.year + total_month // 12
+        month = total_month % 12 + 1
+        return base.replace(year=year, month=month, day=1)
+
+    def count_between(date_field, start: datetime, end: datetime) -> int:
+        return db.query(models.User).filter(date_field.isnot(None), date_field >= start, date_field < end).count()
+
     now = datetime.utcnow()
     start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
     start_of_week = start_of_day - timedelta(days=start_of_day.weekday())
@@ -140,23 +149,63 @@ def admin_user_traffic(
     ]
     results: list[schemas.AdminTrafficStats] = []
     for label, start in periods:
-        signups = db.query(models.User).filter(models.User.created_at >= start).count()
-        logins = (
-            db.query(models.User)
-            .filter(models.User.last_logined.isnot(None), models.User.last_logined >= start)
-            .count()
-        )
-        withdrawals = (
-            db.query(models.User)
-            .filter(models.User.deactivated_at.isnot(None), models.User.deactivated_at >= start)
-            .count()
-        )
+        buckets: list[schemas.AdminTrafficBucket] = []
+        if label == "day":
+            base = start - timedelta(days=11)
+            for offset in range(12):
+                bucket_start = base + timedelta(days=offset)
+                bucket_end = bucket_start + timedelta(days=1)
+                buckets.append(
+                    schemas.AdminTrafficBucket(
+                        label=bucket_start.strftime("%m/%d"),
+                        signups=count_between(models.User.created_at, bucket_start, bucket_end),
+                        logins=count_between(models.User.last_logined, bucket_start, bucket_end),
+                        withdrawals=count_between(models.User.deactivated_at, bucket_start, bucket_end),
+                    )
+                )
+        elif label == "week":
+            base = start - timedelta(weeks=11)
+            for offset in range(12):
+                bucket_start = base + timedelta(weeks=offset)
+                bucket_end = bucket_start + timedelta(weeks=1)
+                buckets.append(
+                    schemas.AdminTrafficBucket(
+                        label=bucket_start.strftime("%m/%d"),
+                        signups=count_between(models.User.created_at, bucket_start, bucket_end),
+                        logins=count_between(models.User.last_logined, bucket_start, bucket_end),
+                        withdrawals=count_between(models.User.deactivated_at, bucket_start, bucket_end),
+                    )
+                )
+        elif label == "month":
+            base = add_months(start, -11)
+            for offset in range(12):
+                bucket_start = add_months(base, offset)
+                bucket_end = add_months(bucket_start, 1)
+                buckets.append(
+                    schemas.AdminTrafficBucket(
+                        label=bucket_start.strftime("%y.%m"),
+                        signups=count_between(models.User.created_at, bucket_start, bucket_end),
+                        logins=count_between(models.User.last_logined, bucket_start, bucket_end),
+                        withdrawals=count_between(models.User.deactivated_at, bucket_start, bucket_end),
+                    )
+                )
+        else:
+            base_year = start.year - 11
+            for offset in range(12):
+                bucket_start = start.replace(year=base_year + offset)
+                bucket_end = bucket_start.replace(year=bucket_start.year + 1)
+                buckets.append(
+                    schemas.AdminTrafficBucket(
+                        label=str(bucket_start.year),
+                        signups=count_between(models.User.created_at, bucket_start, bucket_end),
+                        logins=count_between(models.User.last_logined, bucket_start, bucket_end),
+                        withdrawals=count_between(models.User.deactivated_at, bucket_start, bucket_end),
+                    )
+                )
         results.append(
             schemas.AdminTrafficStats(
                 period=label,
-                signups=signups,
-                logins=logins,
-                withdrawals=withdrawals,
+                buckets=buckets,
             )
         )
     return results

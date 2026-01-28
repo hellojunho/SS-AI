@@ -105,16 +105,58 @@ class _MyPageScreenState extends State<MyPageScreen> {
                             title: '계정',
                             description: '현재 계정에서 안전하게 로그아웃할 수 있어요.',
                             icon: Icons.lock_outline,
-                            action: OutlinedButton.icon(
-                              onPressed: () async {
-                                await widget.services.authService.logout();
-                                widget.onLogout(false);
-                                if (mounted) {
-                                  Navigator.popUntil(context, ModalRoute.withName('/'));
-                                }
-                              },
-                              icon: const Icon(Icons.logout),
-                              label: const Text('로그아웃'),
+                            action: Wrap(
+                              spacing: 8,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: () async {
+                                    await widget.services.authService.logout();
+                                    widget.onLogout(false);
+                                    if (mounted) {
+                                      Navigator.popUntil(context, ModalRoute.withName('/'));
+                                    }
+                                  },
+                                  icon: const Icon(Icons.logout),
+                                  label: const Text('로그아웃'),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (dialogContext) => AlertDialog(
+                                        title: const Text('회원 탈퇴'),
+                                        content: const Text('정말로 회원 탈퇴를 진행하시겠습니까?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(dialogContext, false),
+                                            child: const Text('취소'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(dialogContext, true),
+                                            child: const Text('탈퇴'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm != true) return;
+                                    try {
+                                      await widget.services.authService.withdraw();
+                                      widget.onLogout(false);
+                                      if (mounted) {
+                                        Navigator.popUntil(context, ModalRoute.withName('/'));
+                                      }
+                                    } catch (error) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('회원 탈퇴에 실패했습니다.')),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  icon: const Icon(Icons.person_off),
+                                  label: const Text('회원 탈퇴'),
+                                ),
+                              ],
                             ),
                           ),
                         ],

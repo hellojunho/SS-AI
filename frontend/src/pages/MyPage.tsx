@@ -45,6 +45,22 @@ const MyPage = () => {
     navigate('/')
   }
 
+  const handleWithdraw = async () => {
+    if (!confirm('정말로 회원 탈퇴를 진행하시겠습니까?')) return
+    try {
+      const response = await authorizedFetch(`${API_BASE_URL}/auth/withdraw`, {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        throw new Error('회원 탈퇴 실패')
+      }
+      clearTokens()
+      navigate('/')
+    } catch (error) {
+      alert('회원 탈퇴를 진행하지 못했습니다.')
+    }
+  }
+
   return (
     <section className="page">
       <h1>마이페이지</h1>
@@ -85,9 +101,14 @@ const MyPage = () => {
         <div className="card logout-card">
           <h2>계정</h2>
           <p>현재 계정에서 안전하게 로그아웃할 수 있어요.</p>
-          <button type="button" className="logout-button" onClick={handleLogout}>
-            로그아웃
-          </button>
+          <div className="logout-actions">
+            <button type="button" className="logout-button" onClick={handleLogout}>
+              로그아웃
+            </button>
+            <button type="button" className="logout-button danger" onClick={handleWithdraw}>
+              회원 탈퇴
+            </button>
+          </div>
         </div>
       )}
       {isAdmin && (

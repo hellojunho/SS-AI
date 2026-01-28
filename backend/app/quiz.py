@@ -74,6 +74,12 @@ def _parse_choices(raw_choices: str) -> list[str]:
     return []
 
 
+def _stringify_list(values: list[str] | None) -> str | None:
+    if values is None:
+        return None
+    return json.dumps(values, ensure_ascii=False)
+
+
 def _quiz_to_response(
     quiz: models.Quiz,
     current_user: models.User | None = None,
@@ -130,6 +136,14 @@ def _quiz_to_response(
         current_index=current_index,
         total_count=total_count,
     )
+
+
+def _admin_quiz_response(
+    quiz: models.Quiz,
+    source_user_id: str,
+) -> schemas.AdminQuizResponse:
+    response = _quiz_to_response(quiz)
+    return schemas.AdminQuizResponse(**response.model_dump(), source_user_id=source_user_id)
 
 
 def _get_existing_question_texts(db: Session) -> list[str]:
@@ -403,15 +417,76 @@ def admin_list_quizzes(
     results: list[schemas.AdminQuizResponse] = []
     for quiz in quizzes:
         try:
-            resp = _quiz_to_response(quiz)
             source_user_id = ""
             if hasattr(quiz, "user") and quiz.user is not None:
                 source_user_id = quiz.user.user_id
-            results.append(schemas.AdminQuizResponse(**resp.model_dump(), source_user_id=source_user_id))
+            results.append(_admin_quiz_response(quiz, source_user_id))
         except HTTPException:
             # skip quizzes that can't be converted
             continue
     return results
+
+
+@router.get("/admin/{quiz_id}", response_model=schemas.AdminQuizResponse)
+def admin_get_quiz(
+    quiz_id: int,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    quiz = (
+        db.query(models.Quiz)
+        .options(joinedload(models.Quiz.user), joinedload(models.Quiz.questions))
+        .filter(models.Quiz.id == quiz_id)
+        .first()
+    )
+    if not quiz:
+        raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
+    source_user_id = ""
+    if hasattr(quiz, "user") and quiz.user is not None:
+        source_user_id = quiz.user.user_id
+    return _admin_quiz_response(quiz, source_user_id)
+
+
+@router.patch("/admin/{quiz_id}", response_model=schemas.AdminQuizResponse)
+def admin_update_quiz(
+    quiz_id: int,
+    payload: schemas.AdminQuizUpdate,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    quiz = (
+        db.query(models.Quiz)
+        .options(joinedload(models.Quiz.user), joinedload(models.Quiz.questions))
+        .filter(models.Quiz.id == quiz_id)
+        .first()
+    )
+    if not quiz:
+        raise HTTPException(status_code=404, detail="퀴즈를 찾을 수 없습니다.")
+    if not quiz.questions:
+        raise HTTPException(status_code=404, detail="퀴즈 문항을 찾을 수 없습니다.")
+    question = quiz.questions[0]
+    if payload.title is not None:
+        quiz.title = payload.title
+    if payload.link is not None:
+        quiz.link = payload.link
+    if payload.question is not None:
+        question.question = payload.question
+    if payload.choices is not None:
+        question.choices = _stringify_list(payload.choices) or "[]"
+    if payload.correct is not None:
+        question.correct = payload.correct
+    if payload.wrong is not None:
+        question.wrong = _stringify_list(payload.wrong) or "[]"
+    if payload.explanation is not None:
+        question.explanation = payload.explanation
+    if payload.reference is not None:
+        question.reference = payload.reference
+    db.commit()
+    db.refresh(quiz)
+    source_user_id = ""
+    if hasattr(quiz, "user") and quiz.user is not None:
+        source_user_id = quiz.user.user_id
+    return _admin_quiz_response(quiz, source_user_id)
 
 
 @router.delete("/admin/{quiz_id}")

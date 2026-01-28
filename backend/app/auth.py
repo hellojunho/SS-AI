@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -43,6 +43,8 @@ def login(payload: schemas.UserLogin, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.user_id == payload.user_id).first()
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="로그인 실패")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="탈퇴한 계정입니다.")
     user.last_logined = datetime.utcnow()
     db.commit()
     access_token = create_access_token(subject=str(user.id), token_version=user.token)
@@ -63,6 +65,8 @@ def refresh_token(payload: schemas.RefreshTokenRequest, db: Session = Depends(ge
     user = db.query(models.User).filter(models.User.id == int(user_id)).first()
     if not user or user.token != token_version:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="탈퇴한 계정입니다.")
     access_token = create_access_token(subject=str(user.id), token_version=user.token)
     new_refresh_token = create_refresh_token(subject=str(user.id), token_version=user.token)
     return schemas.Token(access_token=access_token, refresh_token=new_refresh_token)
@@ -82,6 +86,8 @@ def get_current_user(
     user = db.query(models.User).filter(models.User.id == int(user_id)).first()
     if not user or user.token != token_version:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="탈퇴한 계정입니다.")
     return user
 
 
@@ -96,12 +102,64 @@ def me(current_user: models.User = Depends(get_current_user)):
     return current_user
 
 
+@router.post("/withdraw", status_code=status.HTTP_204_NO_CONTENT)
+def withdraw_account(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    current_user.is_active = False
+    current_user.deactivated_at = datetime.utcnow()
+    current_user.token += 1
+    db.commit()
+    return None
+
+
 @router.get("/admin/users", response_model=list[schemas.UserOut])
 def admin_list_users(
     current_user: models.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     return db.query(models.User).order_by(models.User.created_at.desc()).all()
+
+
+@router.get("/admin/traffic", response_model=list[schemas.AdminTrafficStats])
+def admin_user_traffic(
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    now = datetime.utcnow()
+    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_of_week = start_of_day - timedelta(days=start_of_day.weekday())
+    start_of_month = start_of_day.replace(day=1)
+    start_of_year = start_of_day.replace(month=1, day=1)
+    periods = [
+        ("day", start_of_day),
+        ("week", start_of_week),
+        ("month", start_of_month),
+        ("year", start_of_year),
+    ]
+    results: list[schemas.AdminTrafficStats] = []
+    for label, start in periods:
+        signups = db.query(models.User).filter(models.User.created_at >= start).count()
+        logins = (
+            db.query(models.User)
+            .filter(models.User.last_logined.isnot(None), models.User.last_logined >= start)
+            .count()
+        )
+        withdrawals = (
+            db.query(models.User)
+            .filter(models.User.deactivated_at.isnot(None), models.User.deactivated_at >= start)
+            .count()
+        )
+        results.append(
+            schemas.AdminTrafficStats(
+                period=label,
+                signups=signups,
+                logins=logins,
+                withdrawals=withdrawals,
+            )
+        )
+    return results
 
 
 @router.patch("/admin/users/{user_id}", response_model=schemas.UserOut)

@@ -5,6 +5,8 @@ class AdminUser {
     required this.userName,
     required this.email,
     required this.role,
+    required this.isActive,
+    required this.deactivatedAt,
   });
 
   final int id;
@@ -12,6 +14,8 @@ class AdminUser {
   final String userName;
   final String email;
   final String role;
+  final bool isActive;
+  final DateTime? deactivatedAt;
 
   factory AdminUser.fromJson(Map<String, dynamic> json) {
     return AdminUser(
@@ -20,6 +24,10 @@ class AdminUser {
       userName: json['user_name'] as String,
       email: json['email'] as String,
       role: json['role'] as String,
+      isActive: json['is_active'] as bool? ?? true,
+      deactivatedAt: json['deactivated_at'] == null
+          ? null
+          : DateTime.parse(json['deactivated_at'] as String),
     );
   }
 }
@@ -36,6 +44,70 @@ class AdminQuizSummary {
       id: json['id'] as int,
       title: json['title'] as String,
       sourceUserId: (json['source_user_id'] as String?) ?? '',
+    );
+  }
+}
+
+class AdminQuizDetail {
+  const AdminQuizDetail({
+    required this.id,
+    required this.title,
+    required this.question,
+    required this.choices,
+    required this.correct,
+    required this.wrong,
+    required this.explanation,
+    required this.reference,
+    required this.link,
+    required this.sourceUserId,
+  });
+
+  final int id;
+  final String title;
+  final String question;
+  final List<String> choices;
+  final String correct;
+  final List<String> wrong;
+  final String explanation;
+  final String reference;
+  final String link;
+  final String sourceUserId;
+
+  factory AdminQuizDetail.fromJson(Map<String, dynamic> json) {
+    return AdminQuizDetail(
+      id: json['id'] as int,
+      title: json['title'] as String,
+      question: json['question'] as String,
+      choices: (json['choices'] as List<dynamic>).map((item) => item.toString()).toList(),
+      correct: json['correct'] as String,
+      wrong: (json['wrong'] as List<dynamic>).map((item) => item.toString()).toList(),
+      explanation: json['explanation'] as String,
+      reference: json['reference'] as String,
+      link: json['link'] as String? ?? '',
+      sourceUserId: json['source_user_id'] as String? ?? '',
+    );
+  }
+}
+
+class AdminTrafficStats {
+  const AdminTrafficStats({
+    required this.period,
+    required this.signups,
+    required this.logins,
+    required this.withdrawals,
+  });
+
+  final String period;
+  final int signups;
+  final int logins;
+  final int withdrawals;
+
+  factory AdminTrafficStats.fromJson(Map<String, dynamic> json) {
+    return AdminTrafficStats(
+      period: json['period'] as String,
+      signups: json['signups'] as int,
+      logins: json['logins'] as int,
+      withdrawals: json['withdrawals'] as int,
     );
   }
 }

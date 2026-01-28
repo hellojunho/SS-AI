@@ -295,6 +295,108 @@ button.ghost:hover {
   font-size: 18px;
 }
 
+.admin-traffic-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-traffic-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-traffic-header h2 {
+  margin-bottom: 6px;
+}
+
+.admin-traffic-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+.admin-traffic-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-traffic-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.admin-traffic-dot--signup,
+.admin-traffic-bar--signup {
+  background: #3b82f6;
+}
+
+.admin-traffic-dot--login,
+.admin-traffic-bar--login {
+  background: #1d4ed8;
+}
+
+.admin-traffic-dot--withdrawal,
+.admin-traffic-bar--withdrawal {
+  background: #ef4444;
+}
+
+.admin-traffic-message {
+  color: #6b7280;
+}
+
+.admin-traffic-chart {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-traffic-row {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  align-items: end;
+  gap: 12px;
+}
+
+.admin-traffic-label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.admin-traffic-bars {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  min-height: 120px;
+}
+
+.admin-traffic-bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  width: 60px;
+}
+
+.admin-traffic-bar {
+  width: 100%;
+  border-radius: 8px 8px 4px 4px;
+  min-height: 6px;
+}
+
+.admin-traffic-bar-value {
+  font-size: 0.85rem;
+  color: #374151;
+}
+
 .admin-docs-grid {
   display: grid;
   gap: 16px;
@@ -485,6 +587,30 @@ button.ghost:hover {
   letter-spacing: 0.08em;
 }
 
+.admin-quiz-title-input {
+  font-size: 20px;
+  font-weight: 700;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 12px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.admin-quiz-input,
+.admin-quiz-textarea {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.admin-quiz-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
 .admin-quiz-detail-list {
   list-style: none;
   display: flex;
@@ -552,11 +678,25 @@ button.ghost:hover {
   align-items: flex-start;
 }
 
+.logout-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .logout-button {
-  background: #b91c1c;
+  background: #111827;
 }
 
 .logout-button:hover {
+  background: #0f172a;
+}
+
+.logout-button.danger {
+  background: #b91c1c;
+}
+
+.logout-button.danger:hover {
   background: #991b1b;
 }
 

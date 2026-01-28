@@ -35,6 +35,8 @@ class UserOut(BaseModel):
     role: str
     created_at: datetime
     last_logined: datetime | None
+    is_active: bool
+    deactivated_at: datetime | None
 
     class Config:
         from_attributes = True
@@ -194,3 +196,21 @@ class AdminUserCreate(BaseModel):
     role: str = "general"
 
     _password_length = field_validator("password")(_validate_password_length)
+
+
+class AdminQuizUpdate(BaseModel):
+    title: str | None = None
+    link: str | None = None
+    question: str | None = None
+    choices: list[str] | None = None
+    correct: str | None = None
+    wrong: list[str] | None = None
+    explanation: str | None = None
+    reference: str | None = None
+
+
+class AdminTrafficStats(BaseModel):
+    period: str
+    signups: int
+    logins: int
+    withdrawals: int

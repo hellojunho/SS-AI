@@ -5,7 +5,9 @@ import 'services/admin_service.dart';
 import 'services/auth_service.dart';
 import 'services/chat_service.dart';
 import 'services/quiz_service.dart';
+import 'screens/admin_quizzes_screen.dart';
 import 'screens/admin_screen.dart';
+import 'screens/admin_users_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/chat_history_screen.dart';
 import 'screens/home_screen.dart';
@@ -77,6 +79,8 @@ class _SSAppState extends State<SSApp> {
             '/me/history': (context) => ChatHistoryScreen(services: widget.services),
             '/me/wrong-notes': (context) => WrongNotesScreen(services: widget.services),
             '/admin': (context) => AdminScreen(services: widget.services),
+            '/admin/users': (context) => AdminUsersScreen(services: widget.services),
+            '/admin/quizzes': (context) => AdminQuizzesScreen(services: widget.services),
           },
         );
       },

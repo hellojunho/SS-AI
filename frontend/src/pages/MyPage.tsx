@@ -42,7 +42,7 @@ const MyPage = () => {
 
   const handleLogout = () => {
     clearTokens()
-    navigate('/')
+    navigate('/', { replace: true })
   }
 
   const handleWithdraw = async () => {
@@ -55,7 +55,7 @@ const MyPage = () => {
         throw new Error('회원 탈퇴 실패')
       }
       clearTokens()
-      navigate('/')
+      navigate('/', { replace: true })
     } catch (error) {
       alert('회원 탈퇴를 진행하지 못했습니다.')
     }

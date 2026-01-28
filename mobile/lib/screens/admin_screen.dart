@@ -407,37 +407,52 @@ class _TrafficBucketsChart extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           const spacing = 6.0;
-          const minWidth = 18.0;
-          const maxWidth = 28.0;
+          const minWidth = 26.0;
           final bucketCount = buckets.length;
-          final suggestedWidth = bucketCount > 0
-              ? (constraints.maxWidth - spacing * (bucketCount - 1)) / bucketCount
-              : maxWidth;
-          final columnWidth = suggestedWidth.clamp(minWidth, maxWidth);
-          final totalWidth = bucketCount * columnWidth + spacing * (bucketCount - 1);
-          final chartRow = Row(
+          final totalMinWidth = bucketCount * minWidth + spacing * (bucketCount - 1);
+          if (totalMinWidth > constraints.maxWidth) {
+            final chartRow = Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: buckets.asMap().entries.map((entry) {
+                final index = entry.key;
+                final bucket = entry.value;
+                return Padding(
+                  padding: EdgeInsets.only(right: index == bucketCount - 1 ? 0 : spacing),
+                  child: SizedBox(
+                    width: minWidth,
+                    child: _TrafficBucketColumn(
+                      bucket: bucket,
+                      maxValue: maxValue,
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(width: totalMinWidth, child: chartRow),
+            );
+          }
+
+          return Row(
             crossAxisAlignment: CrossAxisAlignment.end,
-            children: buckets.asMap().entries.map((entry) {
+            children: buckets.asMap().entries.expand((entry) {
               final index = entry.key;
               final bucket = entry.value;
-              return Padding(
-                padding: EdgeInsets.only(right: index == bucketCount - 1 ? 0 : spacing),
-                child: SizedBox(
-                  width: columnWidth,
+              final children = <Widget>[
+                Expanded(
                   child: _TrafficBucketColumn(
                     bucket: bucket,
                     maxValue: maxValue,
                   ),
                 ),
-              );
+              ];
+              if (index != bucketCount - 1) {
+                children.add(const SizedBox(width: spacing));
+              }
+              return children;
             }).toList(),
           );
-          return totalWidth > constraints.maxWidth
-              ? SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(width: totalWidth, child: chartRow),
-                )
-              : chartRow;
         },
       ),
     );

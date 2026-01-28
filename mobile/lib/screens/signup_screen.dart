@@ -30,8 +30,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _submit() async {
-    final formState = _formKey.currentState;
-    if (formState == null || !formState.validate()) {
+    if (!_formKey.currentState!.validate()) {
       return;
     }
     setState(() {
@@ -114,16 +113,11 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   const SizedBox(height: 16),
                   if (_message != null)
-                    Builder(
-                      builder: (context) {
-                        final message = _message ?? 'Null';
-                        return Text(
-                          message,
-                          style: TextStyle(
-                            color: message.contains('완료') ? Colors.green : Colors.red,
-                          ),
-                        );
-                      },
+                    Text(
+                      _message!,
+                      style: TextStyle(
+                        color: _message!.contains('완료') ? Colors.green : Colors.red,
+                      ),
                     ),
                   const SizedBox(height: 16),
                   FilledButton(

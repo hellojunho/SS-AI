@@ -11,9 +11,9 @@ class ChatAnswer {
 
   factory ChatAnswer.fromJson(Map<String, dynamic> json) {
     return ChatAnswer(
-      answer: json['answer'] as String? ?? 'Null',
-      reference: json['reference'] as String? ?? 'Null',
-      filePath: json['file_path'] as String? ?? 'Null',
+      answer: json['answer'] as String,
+      reference: json['reference'] as String,
+      filePath: json['file_path'] as String,
     );
   }
 }
@@ -26,8 +26,8 @@ class ChatHistoryEntry {
 
   factory ChatHistoryEntry.fromJson(Map<String, dynamic> json) {
     return ChatHistoryEntry(
-      role: json['role'] as String? ?? 'Null',
-      content: json['content'] as String? ?? 'Null',
+      role: json['role'] as String,
+      content: json['content'] as String,
     );
   }
 }
@@ -40,11 +40,8 @@ class ChatHistoryDatesResponse {
 
   factory ChatHistoryDatesResponse.fromJson(Map<String, dynamic> json) {
     return ChatHistoryDatesResponse(
-      dates: (json['dates'] as List<dynamic>?)
-              ?.map((date) => date?.toString() ?? 'Null')
-              .toList() ??
-          const <String>[],
-      today: json['today'] as String? ?? 'Null',
+      dates: (json['dates'] as List<dynamic>).cast<String>(),
+      today: json['today'] as String,
     );
   }
 }
@@ -58,16 +55,11 @@ class ChatHistoryResponse {
 
   factory ChatHistoryResponse.fromJson(Map<String, dynamic> json) {
     return ChatHistoryResponse(
-      date: json['date'] as String? ?? 'Null',
-      entries: (json['entries'] as List<dynamic>?)
-              ?.map(
-                (entry) => ChatHistoryEntry.fromJson(
-                  entry is Map<String, dynamic> ? entry : const {},
-                ),
-              )
-              .toList() ??
-          const <ChatHistoryEntry>[],
-      isToday: json['is_today'] as bool? ?? false,
+      date: json['date'] as String,
+      entries: (json['entries'] as List<dynamic>)
+          .map((entry) => ChatHistoryEntry.fromJson(entry as Map<String, dynamic>))
+          .toList(),
+      isToday: json['is_today'] as bool,
     );
   }
 }

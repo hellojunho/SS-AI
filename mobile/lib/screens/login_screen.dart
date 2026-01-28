@@ -27,8 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _submit() async {
-    final formState = _formKey.currentState;
-    if (formState == null || !formState.validate()) {
+    if (!_formKey.currentState!.validate()) {
       return;
     }
     setState(() {
@@ -91,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   if (_errorMessage != null)
-                    Text(_errorMessage ?? 'Null', style: const TextStyle(color: Colors.red)),
+                    Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
                   const SizedBox(height: 16),
                   FilledButton(
                     onPressed: _isLoading ? null : _submit,

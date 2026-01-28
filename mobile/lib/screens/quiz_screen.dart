@@ -25,8 +25,6 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
   String? _selectedAnswerAll;
   String? _statusMessageUser;
   String? _statusMessageAll;
-  String? _historyMessageUser;
-  String? _historyMessageAll;
 
   @override
   void initState() {
@@ -60,8 +58,6 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
 
   String? get _statusMessage => _isAllScope ? _statusMessageAll : _statusMessageUser;
 
-  String? get _historyMessage => _isAllScope ? _historyMessageAll : _historyMessageUser;
-
   void _setSelectedAnswer(String? value) {
     setState(() {
       if (_isAllScope) {
@@ -80,14 +76,6 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
     }
   }
 
-  void _setHistoryMessage(String? message) {
-    if (_isAllScope) {
-      _historyMessageAll = message;
-    } else {
-      _historyMessageUser = message;
-    }
-  }
-
   Future<void> _loadLatest({required bool all}) async {
     setState(() {
       _isLoading = true;
@@ -99,18 +87,15 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
     });
     try {
       final quiz = await widget.services.quizService.fetchLatest(all: all);
-      final historyMessage = _buildHistoryMessage(quiz);
       setState(() {
         if (all) {
           _allQuiz = quiz;
           _selectedAnswerAll = null;
           _statusMessageAll = null;
-          _historyMessageAll = historyMessage;
         } else {
           _userQuiz = quiz;
           _selectedAnswerUser = null;
           _statusMessageUser = null;
-          _historyMessageUser = historyMessage;
         }
       });
     } catch (error) {
@@ -146,20 +131,13 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
         currentId: quiz.id,
         all: _isAllScope,
       );
-      if (nextQuiz == null) {
-        await _showSummaryDialog();
-        return;
-      }
-      final historyMessage = _buildHistoryMessage(nextQuiz);
       setState(() {
         if (_isAllScope) {
           _allQuiz = nextQuiz;
           _selectedAnswerAll = null;
-          _historyMessageAll = historyMessage;
         } else {
           _userQuiz = nextQuiz;
           _selectedAnswerUser = null;
-          _historyMessageUser = historyMessage;
         }
       });
     } catch (error) {
@@ -205,7 +183,11 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
               children: [
                 Text(isCorrect ? '잘했어요! 🎉' : '아쉽지만 다시 도전해 보세요.'),
                 const SizedBox(height: 12),
-                if (isCorrect) Text('정답: ${quiz.correct}'),
+                Text('정답: ${quiz.correct}'),
+                if (result.answerHistory.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('답변 기록: ${result.answerHistory.join(', ')}'),
+                ],
               ],
             ),
             actions: [
@@ -251,73 +233,6 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
     }
   }
 
-  String? _buildHistoryMessage(Quiz? quiz) {
-    if (quiz == null) return null;
-    if (quiz.hasCorrectAttempt) {
-      return '이전에 맞힌 문제에요!';
-    }
-    if (quiz.hasWrongAttempt) {
-      return '이전에 틀린 문제에요!';
-    }
-    return null;
-  }
-
-  Color? _historyMessageColor(Quiz? quiz) {
-    if (quiz == null) return null;
-    if (quiz.hasCorrectAttempt) {
-      return Colors.green;
-    }
-    if (quiz.hasWrongAttempt) {
-      return Colors.red;
-    }
-    return null;
-  }
-
-  Future<void> _showSummaryDialog() async {
-    try {
-      final summary = await widget.services.quizService.fetchSummary(all: _isAllScope);
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('퀴즈 완료'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('모든 퀴즈를 풀었어요!'),
-              const SizedBox(height: 12),
-              Text('정답 수: ${summary.correctCount}'),
-              Text('오답 수: ${summary.wrongCount}'),
-              Text('정답률: ${summary.accuracyRate.toStringAsFixed(1)}%'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('닫기'),
-            ),
-          ],
-        ),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('퀴즈 완료'),
-          content: Text(error.toString()),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('닫기'),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -347,9 +262,6 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
     final error = all ? _allError : _userError;
     final selectedAnswer = all ? _selectedAnswerAll : _selectedAnswerUser;
     final statusMessage = all ? _statusMessageAll : _statusMessageUser;
-    final historyMessage = all ? _historyMessageAll : _historyMessageUser;
-    final historyColor =
-        all ? _historyMessageColor(_allQuiz) : _historyMessageColor(_userQuiz);
     final isCurrentTab = _isAllScope == all;
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -377,8 +289,6 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
                       quiz: quiz,
                       selectedAnswer: selectedAnswer,
                       statusMessage: statusMessage,
-                      historyMessage: historyMessage,
-                      historyMessageColor: historyColor,
                       isSubmitting: _isSubmitting && isCurrentTab,
                       onSelectAnswer: (value) => _setSelectedAnswer(value),
                       onSubmit: _submitAnswer,
@@ -394,8 +304,6 @@ class _QuizDetail extends StatelessWidget {
     required this.quiz,
     required this.selectedAnswer,
     required this.statusMessage,
-    required this.historyMessage,
-    required this.historyMessageColor,
     required this.isSubmitting,
     required this.onSelectAnswer,
     required this.onSubmit,
@@ -406,8 +314,6 @@ class _QuizDetail extends StatelessWidget {
   final Quiz quiz;
   final String? selectedAnswer;
   final String? statusMessage;
-  final String? historyMessage;
-  final Color? historyMessageColor;
   final bool isSubmitting;
   final ValueChanged<String> onSelectAnswer;
   final VoidCallback onSubmit;
@@ -432,17 +338,6 @@ class _QuizDetail extends StatelessWidget {
         ),
         if (quiz.currentIndex != null && quiz.totalCount != null)
           Text('문항 ${quiz.currentIndex} / ${quiz.totalCount}'),
-        if (historyMessage != null) ...[
-          const SizedBox(height: 6),
-          Text(
-            historyMessage ?? 'Null',
-            style: TextStyle(
-              color: historyMessageColor ?? Colors.black54,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
         const SizedBox(height: 16),
         Text(quiz.question, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
@@ -475,7 +370,7 @@ class _QuizDetail extends StatelessWidget {
         ),
         if (statusMessage != null) ...[
           const SizedBox(height: 12),
-          Text(statusMessage ?? 'Null', style: const TextStyle(color: Colors.indigo)),
+          Text(statusMessage!, style: const TextStyle(color: Colors.indigo)),
         ],
         const SizedBox(height: 12),
         Text('해설', style: Theme.of(context).textTheme.titleSmall),

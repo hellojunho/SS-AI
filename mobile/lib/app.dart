@@ -41,8 +41,7 @@ class SSApp extends StatefulWidget {
 }
 
 class _SSAppState extends State<SSApp> {
-  final ValueNotifier<_AuthStatus> _authStatus =
-      ValueNotifier<_AuthStatus>(_AuthStatus.unknown);
+  final ValueNotifier<bool> _isAuthenticated = ValueNotifier(false);
 
   @override
   void initState() {
@@ -52,28 +51,18 @@ class _SSAppState extends State<SSApp> {
 
   Future<void> _checkAuth() async {
     final isAuthed = await widget.services.authService.isAuthenticated();
-    _authStatus.value = isAuthed ? _AuthStatus.authenticated : _AuthStatus.unauthenticated;
+    _isAuthenticated.value = isAuthed;
   }
 
   void _setAuthenticated(bool value) {
-    _authStatus.value = value ? _AuthStatus.authenticated : _AuthStatus.unauthenticated;
+    _isAuthenticated.value = value;
   }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<_AuthStatus>(
-      valueListenable: _authStatus,
-      builder: (context, status, _) {
-        if (status == _AuthStatus.unknown) {
-          return MaterialApp(
-            title: 'SS-AI Mobile',
-            theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
-            home: const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            ),
-          );
-        }
-        final authed = status == _AuthStatus.authenticated;
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isAuthenticated,
+      builder: (context, authed, _) {
         return MaterialApp(
           title: 'SS-AI Mobile',
           theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
@@ -93,10 +82,4 @@ class _SSAppState extends State<SSApp> {
       },
     );
   }
-}
-
-enum _AuthStatus {
-  unknown,
-  authenticated,
-  unauthenticated,
 }

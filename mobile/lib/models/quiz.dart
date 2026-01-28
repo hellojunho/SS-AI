@@ -27,13 +27,16 @@ class Quiz {
 
   factory Quiz.fromJson(Map<String, dynamic> json) {
     return Quiz(
-      id: json['id'] as int,
-      title: json['title'] as String,
-      question: json['question'] as String,
-      choices: (json['choices'] as List<dynamic>).cast<String>(),
-      correct: json['correct'] as String,
-      explanation: json['explanation'] as String,
-      reference: json['reference'] as String,
+      id: json['id'] as int? ?? 0,
+      title: json['title'] as String? ?? 'Null',
+      question: json['question'] as String? ?? 'Null',
+      choices: (json['choices'] as List<dynamic>?)
+              ?.map((choice) => choice?.toString() ?? 'Null')
+              .toList() ??
+          const <String>[],
+      correct: json['correct'] as String? ?? 'Null',
+      explanation: json['explanation'] as String? ?? 'Null',
+      reference: json['reference'] as String? ?? 'Null',
       hasCorrectAttempt: json['has_correct_attempt'] as bool? ?? false,
       hasWrongAttempt: json['has_wrong_attempt'] as bool? ?? false,
       currentIndex: json['current_index'] as int?,
@@ -65,14 +68,17 @@ class QuizAnswerResult {
 
   factory QuizAnswerResult.fromJson(Map<String, dynamic> json) {
     return QuizAnswerResult(
-      quizId: json['quiz_id'] as int,
-      questionId: json['question_id'] as int,
-      answer: json['answer'] as String,
-      isCorrect: json['is_correct'] as bool,
-      isWrong: json['is_wrong'] as bool,
-      hasCorrectAttempt: json['has_correct_attempt'] as bool,
-      hasWrongAttempt: json['has_wrong_attempt'] as bool,
-      answerHistory: (json['answer_history'] as List<dynamic>).cast<String>(),
+      quizId: json['quiz_id'] as int? ?? 0,
+      questionId: json['question_id'] as int? ?? 0,
+      answer: json['answer'] as String? ?? 'Null',
+      isCorrect: json['is_correct'] as bool? ?? false,
+      isWrong: json['is_wrong'] as bool? ?? false,
+      hasCorrectAttempt: json['has_correct_attempt'] as bool? ?? false,
+      hasWrongAttempt: json['has_wrong_attempt'] as bool? ?? false,
+      answerHistory: (json['answer_history'] as List<dynamic>?)
+              ?.map((entry) => entry?.toString() ?? 'Null')
+              .toList() ??
+          const <String>[],
     );
   }
 }

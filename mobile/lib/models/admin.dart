@@ -15,11 +15,11 @@ class AdminUser {
 
   factory AdminUser.fromJson(Map<String, dynamic> json) {
     return AdminUser(
-      id: json['id'] as int,
-      userId: json['user_id'] as String,
-      userName: json['user_name'] as String,
-      email: json['email'] as String,
-      role: json['role'] as String,
+      id: json['id'] as int? ?? 0,
+      userId: json['user_id'] as String? ?? 'Null',
+      userName: json['user_name'] as String? ?? 'Null',
+      email: json['email'] as String? ?? 'Null',
+      role: json['role'] as String? ?? 'Null',
     );
   }
 }
@@ -33,9 +33,9 @@ class AdminQuizSummary {
 
   factory AdminQuizSummary.fromJson(Map<String, dynamic> json) {
     return AdminQuizSummary(
-      id: json['id'] as int,
-      title: json['title'] as String,
-      sourceUserId: (json['source_user_id'] as String?) ?? '',
+      id: json['id'] as int? ?? 0,
+      title: json['title'] as String? ?? 'Null',
+      sourceUserId: (json['source_user_id'] as String?) ?? 'Null',
     );
   }
 }
@@ -63,13 +63,13 @@ class LlmUsage {
 
   factory LlmUsage.fromJson(Map<String, dynamic> json) {
     return LlmUsage(
-      provider: json['provider'] as String,
-      model: json['model'] as String,
-      totalTokens: json['total_tokens'] as int,
-      usedTokens: json['used_tokens'] as int,
-      remainingTokens: json['remaining_tokens'] as int,
-      promptTokens: json['prompt_tokens'] as int,
-      completionTokens: json['completion_tokens'] as int,
+      provider: json['provider'] as String? ?? 'Null',
+      model: json['model'] as String? ?? 'Null',
+      totalTokens: json['total_tokens'] as int? ?? 0,
+      usedTokens: json['used_tokens'] as int? ?? 0,
+      remainingTokens: json['remaining_tokens'] as int? ?? 0,
+      promptTokens: json['prompt_tokens'] as int? ?? 0,
+      completionTokens: json['completion_tokens'] as int? ?? 0,
       lastUpdated:
           json['last_updated'] == null ? null : DateTime.parse(json['last_updated'] as String),
     );

@@ -102,7 +102,7 @@ class _ChatScreenState extends State<ChatScreen> {
           if (_error != null && _entries.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(_error!, style: const TextStyle(color: Colors.red)),
+              child: Text(_error ?? 'Null', style: const TextStyle(color: Colors.red)),
             ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),

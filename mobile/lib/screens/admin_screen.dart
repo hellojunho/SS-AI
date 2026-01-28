@@ -85,7 +85,7 @@ class _AdminScreenState extends State<AdminScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+              ? Center(child: Text(_error ?? 'Null', style: const TextStyle(color: Colors.red)))
               : RefreshIndicator(
                   onRefresh: _loadAdminDashboard,
                   child: ListView(
@@ -94,12 +94,17 @@ class _AdminScreenState extends State<AdminScreen> {
                       _StatCard(title: '총 사용자', value: '$_userCount명', icon: Icons.people),
                       _StatCard(title: '총 퀴즈', value: '$_quizCount개', icon: Icons.quiz),
                       if (_usage != null)
-                        _StatCard(
-                          title: 'ChatGPT 토큰 사용량',
-                          value: '${_usage!.usedTokens} / ${_usage!.totalTokens}',
-                          subtitle:
-                              '프롬프트 ${_usage!.promptTokens}, 응답 ${_usage!.completionTokens}',
-                          icon: Icons.bolt,
+                        Builder(
+                          builder: (context) {
+                            final usage = _usage;
+                            return _StatCard(
+                              title: 'ChatGPT 토큰 사용량',
+                              value: '${usage?.usedTokens ?? 0} / ${usage?.totalTokens ?? 0}',
+                              subtitle:
+                                  '프롬프트 ${usage?.promptTokens ?? 0}, 응답 ${usage?.completionTokens ?? 0}',
+                              icon: Icons.bolt,
+                            );
+                          },
                         ),
                       const SizedBox(height: 12),
                       Card(
@@ -126,7 +131,7 @@ class _AdminScreenState extends State<AdminScreen> {
                         ),
                       ),
                     ],
-                    ),
+                  ),
                 ),
       bottomNavigationBar: const MainBottomNav(currentIndex: 2),
     );
@@ -164,7 +169,7 @@ class _StatCard extends StatelessWidget {
                   Text(value, style: Theme.of(context).textTheme.headlineSmall),
                   if (subtitle != null) ...[
                     const SizedBox(height: 4),
-                    Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
+                    Text(subtitle ?? 'Null', style: Theme.of(context).textTheme.bodySmall),
                   ],
                 ],
               ),

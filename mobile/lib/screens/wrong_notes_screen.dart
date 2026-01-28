@@ -161,7 +161,9 @@ class _WrongNotesScreenState extends State<WrongNotesScreen> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _errorMessage != null
-                ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
+                ? Center(
+                    child: Text(_errorMessage ?? 'Null', style: const TextStyle(color: Colors.red)),
+                  )
                 : question == null
                     ? const Center(child: Text('아직 기록된 오답이 없어요.'))
                     : Column(

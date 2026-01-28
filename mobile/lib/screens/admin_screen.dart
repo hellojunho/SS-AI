@@ -248,15 +248,44 @@ class _ActionCard extends StatelessWidget {
   }
 }
 
-class _TrafficCard extends StatelessWidget {
+class _TrafficCard extends StatefulWidget {
   const _TrafficCard({required this.stats});
 
   final List<AdminTrafficStats> stats;
 
   @override
+  State<_TrafficCard> createState() => _TrafficCardState();
+}
+
+class _TrafficCardState extends State<_TrafficCard> {
+  static const List<String> _periodOrder = ['day', 'week', 'month', 'year'];
+  late String _selectedPeriod;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPeriod = _initialPeriod(widget.stats);
+  }
+
+  @override
+  void didUpdateWidget(covariant _TrafficCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.stats.any((stat) => stat.period == _selectedPeriod)) {
+      _selectedPeriod = _initialPeriod(widget.stats);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final maxValue = stats
-        .expand((item) => [item.signups, item.logins, item.withdrawals])
+    final availablePeriods = _periodOrder
+        .where((period) => widget.stats.any((stat) => stat.period == period))
+        .toList();
+    final selectedStats = widget.stats.firstWhere(
+      (stat) => stat.period == _selectedPeriod,
+      orElse: () => widget.stats.first,
+    );
+    final maxValue = selectedStats.buckets
+        .expand((bucket) => [bucket.signups, bucket.logins, bucket.withdrawals])
         .fold<int>(1, (prev, value) => value > prev ? value : prev);
     return Card(
       child: Padding(
@@ -278,38 +307,39 @@ class _TrafficCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            Column(
-              children: stats.map((item) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 32,
-                        child: Text(_periodLabel(item.period)),
-                      ),
-                      Expanded(
-                        child: SizedBox(
-                          height: 80,
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              _Bar(value: item.signups, maxValue: maxValue, color: Colors.blue),
-                              _Bar(value: item.logins, maxValue: maxValue, color: Colors.blueAccent),
-                              _Bar(value: item.withdrawals, maxValue: maxValue, color: Colors.red),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+            Wrap(
+              spacing: 8,
+              children: availablePeriods.map((period) {
+                final isActive = _selectedPeriod == period;
+                return ChoiceChip(
+                  label: Text(_periodLabel(period)),
+                  selected: isActive,
+                  onSelected: (_) {
+                    setState(() {
+                      _selectedPeriod = period;
+                    });
+                  },
                 );
               }).toList(),
+            ),
+            const SizedBox(height: 16),
+            _TrafficBucketsChart(
+              buckets: selectedStats.buckets,
+              maxValue: maxValue,
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _initialPeriod(List<AdminTrafficStats> stats) {
+    for (final period in _periodOrder) {
+      if (stats.any((stat) => stat.period == period)) {
+        return period;
+      }
+    }
+    return stats.first.period;
   }
 
   String _periodLabel(String period) {
@@ -358,8 +388,100 @@ class _LegendChip extends StatelessWidget {
   }
 }
 
-class _Bar extends StatelessWidget {
-  const _Bar({required this.value, required this.maxValue, required this.color});
+class _TrafficBucketsChart extends StatelessWidget {
+  const _TrafficBucketsChart({
+    required this.buckets,
+    required this.maxValue,
+  });
+
+  final List<AdminTrafficBucket> buckets;
+  final int maxValue;
+
+  @override
+  Widget build(BuildContext context) {
+    if (buckets.isEmpty) {
+      return Text('표시할 데이터가 없습니다.', style: Theme.of(context).textTheme.bodySmall);
+    }
+    return SizedBox(
+      height: 120,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const spacing = 6.0;
+          const minWidth = 18.0;
+          const maxWidth = 28.0;
+          final bucketCount = buckets.length;
+          final suggestedWidth = bucketCount > 0
+              ? (constraints.maxWidth - spacing * (bucketCount - 1)) / bucketCount
+              : maxWidth;
+          final columnWidth = suggestedWidth.clamp(minWidth, maxWidth);
+          final totalWidth = bucketCount * columnWidth + spacing * (bucketCount - 1);
+          final chartRow = Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: buckets.asMap().entries.map((entry) {
+              final index = entry.key;
+              final bucket = entry.value;
+              return Padding(
+                padding: EdgeInsets.only(right: index == bucketCount - 1 ? 0 : spacing),
+                child: SizedBox(
+                  width: columnWidth,
+                  child: _TrafficBucketColumn(
+                    bucket: bucket,
+                    maxValue: maxValue,
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+          return totalWidth > constraints.maxWidth
+              ? SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(width: totalWidth, child: chartRow),
+                )
+              : chartRow;
+        },
+      ),
+    );
+  }
+}
+
+class _TrafficBucketColumn extends StatelessWidget {
+  const _TrafficBucketColumn({
+    required this.bucket,
+    required this.maxValue,
+  });
+
+  final AdminTrafficBucket bucket;
+  final int maxValue;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _CompactBar(value: bucket.signups, maxValue: maxValue, color: Colors.blue),
+              _CompactBar(value: bucket.logins, maxValue: maxValue, color: Colors.blueAccent),
+              _CompactBar(value: bucket.withdrawals, maxValue: maxValue, color: Colors.red),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          bucket.label,
+          style: Theme.of(context).textTheme.labelSmall,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+}
+
+class _CompactBar extends StatelessWidget {
+  const _CompactBar({required this.value, required this.maxValue, required this.color});
 
   final int value;
   final int maxValue;
@@ -368,30 +490,19 @@ class _Bar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ratio = maxValue == 0 ? 0.0 : value / maxValue;
+    final height = (ratio * 56).clamp(2, 56).toDouble();
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  height: (ratio * 60).clamp(6, 60).toDouble(),
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
+        padding: const EdgeInsets.symmetric(horizontal: 1.5),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            height: height,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(6),
             ),
-            const SizedBox(height: 6),
-            Text(
-              value.toString(),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
+          ),
         ),
       ),
     );

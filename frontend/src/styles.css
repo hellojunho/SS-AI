@@ -451,19 +451,23 @@ button.ghost:hover {
   }
 
   .admin-traffic-columns {
-    gap: 3px;
-    min-width: 420px;
+    gap: 2px;
+    min-width: 360px;
   }
 
   .admin-traffic-column-bars {
-    gap: 2px;
-    height: 72px;
+    gap: 1px;
+    height: 60px;
   }
 
   .admin-traffic-bar {
-    width: 3px;
-    border-radius: 3px;
-    min-height: 3px;
+    width: 2px;
+    border-radius: 2px;
+    min-height: 2px;
+  }
+
+  .admin-traffic-column-label {
+    font-size: 0.6rem;
   }
 }
 

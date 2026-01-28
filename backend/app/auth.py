@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -133,10 +133,16 @@ def admin_user_traffic(
         month = total_month % 12 + 1
         return base.replace(year=year, month=month, day=1)
 
-    def count_between(date_field, start: datetime, end: datetime) -> int:
-        return db.query(models.User).filter(date_field.isnot(None), date_field >= start, date_field < end).count()
+    def to_utc_naive(target: datetime) -> datetime:
+        return target.astimezone(timezone.utc).replace(tzinfo=None)
 
-    now = datetime.utcnow()
+    def count_between(date_field, start: datetime, end: datetime) -> int:
+        start_utc = to_utc_naive(start)
+        end_utc = to_utc_naive(end)
+        return db.query(models.User).filter(date_field.isnot(None), date_field >= start_utc, date_field < end_utc).count()
+
+    kst = timezone(timedelta(hours=9))
+    now = datetime.now(kst)
     start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
     start_of_week = start_of_day - timedelta(days=start_of_day.weekday())
     start_of_month = start_of_day.replace(day=1)

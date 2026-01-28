@@ -100,7 +100,7 @@ const QuizPage = () => {
       )
       if (data.is_correct) {
         setAnswerStatus('correct')
-        setActiveModal('correct')
+        await handleNextQuiz()
       } else {
         setAnswerStatus('wrong')
         setActiveModal('wrong')
@@ -324,29 +324,6 @@ const QuizPage = () => {
               <p className="quiz-reference-content">{renderReference(quiz.reference)}</p>
             </div>
           )}
-        </div>
-      )}
-      {activeModal === 'correct' && (
-        <div className="modal-overlay">
-          <div className="modal-card">
-            <h3>정답입니다!</h3>
-            <p>정답을 맞혔어요. 다음 문제를 풀어볼까요?</p>
-            <div className="modal-actions">
-              <button type="button" className="secondary" onClick={handleCloseModal}>
-                닫기
-              </button>
-              <button type="button" onClick={handleNextQuiz} disabled={loading}>
-                {loading ? (
-                  <span className="button-with-spinner">
-                    <span className="spinner" />
-                    불러오는 중
-                  </span>
-                ) : (
-                  '다음 문제'
-                )}
-              </button>
-            </div>
-          </div>
         </div>
       )}
       {activeModal === 'wrong' && (

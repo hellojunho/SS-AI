@@ -319,34 +319,38 @@ button.ghost:hover {
   margin-bottom: 6px;
 }
 
-.admin-traffic-periods {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.admin-traffic-period-button {
-  border-radius: 999px;
-  border: 1px solid #d1d5db;
-  padding: 6px 12px;
-  font-size: 0.85rem;
-  background: #f3f4f6;
-  color: #374151;
-  cursor: pointer;
-}
-
-.admin-traffic-period-button.is-active {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #ffffff;
-}
-
 .admin-traffic-legend {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
   font-size: 0.85rem;
   color: #4b5563;
+}
+
+.admin-traffic-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 4px;
+  background: #f3f4f6;
+  border-radius: 999px;
+}
+
+.admin-traffic-tab {
+  border: none;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.admin-traffic-tab.is-active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
 }
 
 .admin-traffic-legend-item {
@@ -388,8 +392,8 @@ button.ghost:hover {
 .admin-traffic-columns {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 10px;
-  min-width: 640px;
+  gap: 6px;
+  min-width: 520px;
   align-items: end;
 }
 
@@ -404,20 +408,48 @@ button.ghost:hover {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 4px;
-  height: 140px;
+  gap: 3px;
+  height: 120px;
 }
 
 .admin-traffic-bar {
-  width: 10px;
+  width: 7px;
   border-radius: 6px;
-  min-height: 6px;
+  min-height: 5px;
 }
 
 .admin-traffic-column-label {
   font-size: 0.7rem;
   color: #4b5563;
   text-align: center;
+}
+
+@media (max-width: 640px) {
+  .admin-traffic-tabs {
+    gap: 4px;
+    padding: 3px;
+  }
+
+  .admin-traffic-tab {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+  }
+
+  .admin-traffic-columns {
+    gap: 4px;
+    min-width: 460px;
+  }
+
+  .admin-traffic-column-bars {
+    gap: 2px;
+    height: 96px;
+  }
+
+  .admin-traffic-bar {
+    width: 5px;
+    border-radius: 4px;
+    min-height: 4px;
+  }
 }
 
 .admin-docs-grid {

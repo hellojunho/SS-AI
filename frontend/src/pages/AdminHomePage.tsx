@@ -109,17 +109,24 @@ const AdminHomePage = () => {
           <div className="admin-traffic-title">
             <h2>사용자 유입량</h2>
             <p>일/주/월/년 단위 신규 가입, 로그인, 탈퇴 수를 확인하세요.</p>
-            <div className="admin-traffic-periods">
-              {(Object.keys(labelMap) as TrafficStats['period'][]).map((period) => (
-                <button
-                  key={period}
-                  type="button"
-                  className={`admin-traffic-period-button${selectedPeriod === period ? ' is-active' : ''}`}
-                  onClick={() => setSelectedPeriod(period)}
-                >
-                  {labelMap[period]}
-                </button>
-              ))}
+            <div className="admin-traffic-tabs" role="tablist" aria-label="유입량 기간 선택">
+              {(Object.keys(labelMap) as TrafficStats['period'][]).map((period) => {
+                const isActive = selectedPeriod === period
+                return (
+                  <button
+                    key={period}
+                    id={`traffic-tab-${period}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls={`traffic-panel-${period}`}
+                    className={`admin-traffic-tab${isActive ? ' is-active' : ''}`}
+                    onClick={() => setSelectedPeriod(period)}
+                  >
+                    {labelMap[period]}
+                  </button>
+                )
+              })}
             </div>
           </div>
           <div className="admin-traffic-legend">
@@ -140,7 +147,12 @@ const AdminHomePage = () => {
         {trafficLoading && <p className="admin-traffic-message">유입량 데이터를 불러오는 중...</p>}
         {!trafficLoading && trafficError && <p className="admin-traffic-message error-text">{trafficError}</p>}
         {!trafficLoading && !trafficError && (
-          <div className="admin-traffic-chart">
+          <div
+            className="admin-traffic-chart"
+            role="tabpanel"
+            id={`traffic-panel-${selectedPeriod}`}
+            aria-labelledby={`traffic-tab-${selectedPeriod}`}
+          >
             <div className="admin-traffic-columns">
               {(selectedStats?.buckets ?? []).map((bucket, index) => (
                 <div key={`${bucket.label}-${index}`} className="admin-traffic-column">

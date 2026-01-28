@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { authorizedFetch } from '../api'
@@ -37,6 +37,7 @@ const AdminUsersPage = () => {
   const [deletingUserId, setDeletingUserId] = useState<number | null>(null)
   const [createLoading, setCreateLoading] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+  const createSectionRef = useRef<HTMLDivElement | null>(null)
   const [createForm, setCreateForm] = useState({
     user_id: '',
     user_name: '',
@@ -251,10 +252,21 @@ const AdminUsersPage = () => {
           홈
         </button>
       </div>
-      <h1>사용자 대시보드</h1>
-      <p>사용자 정보를 검색하고 계정 정보를 관리할 수 있습니다.</p>
+      <div className="admin-users-header">
+        <div>
+          <h1>사용자 대시보드</h1>
+          <p>사용자 정보를 검색하고 계정 정보를 관리할 수 있습니다.</p>
+        </div>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => createSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        >
+          사용자 추가
+        </button>
+      </div>
       <AdminNav />
-      <div className="card admin-user-create">
+      <div ref={createSectionRef} className="card admin-user-create">
         <h2>사용자 생성</h2>
         <div className="admin-user-create-grid">
           <label className="label">

@@ -114,11 +114,16 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   const SizedBox(height: 16),
                   if (_message != null)
-                    Text(
-                      _message!,
-                      style: TextStyle(
-                        color: _message!.contains('완료') ? Colors.green : Colors.red,
-                      ),
+                    Builder(
+                      builder: (context) {
+                        final message = _message ?? 'Null';
+                        return Text(
+                          message,
+                          style: TextStyle(
+                            color: message.contains('완료') ? Colors.green : Colors.red,
+                          ),
+                        );
+                      },
                     ),
                   const SizedBox(height: 16),
                   FilledButton(

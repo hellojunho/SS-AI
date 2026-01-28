@@ -55,7 +55,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _error != null
-                ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+                ? Center(child: Text(_error ?? 'Null', style: const TextStyle(color: Colors.red)))
                 : _profile == null
                     ? const Center(child: Text('정보를 불러올 수 없습니다.'))
                     : Column(
@@ -89,7 +89,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                               Navigator.pushNamed(context, '/chat');
                             },
                           ),
-                          if (_profile!.role == 'admin') ...[
+                          if ((_profile?.role ?? 'Null') == 'admin') ...[
                             const SizedBox(height: 12),
                             _ActionCard(
                               title: '관리자 페이지',
@@ -189,6 +189,7 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedAction = action;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -210,9 +211,9 @@ class _InfoCard extends StatelessWidget {
                 Text(title, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 4),
                 Text(description, style: Theme.of(context).textTheme.bodySmall),
-                if (action != null) ...[
+                if (resolvedAction != null) ...[
                   const SizedBox(height: 12),
-                  action!,
+                  resolvedAction,
                 ],
               ],
             ),

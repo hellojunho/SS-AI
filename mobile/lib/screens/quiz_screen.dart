@@ -435,7 +435,7 @@ class _QuizDetail extends StatelessWidget {
         if (historyMessage != null) ...[
           const SizedBox(height: 6),
           Text(
-            historyMessage!,
+            historyMessage ?? 'Null',
             style: TextStyle(
               color: historyMessageColor ?? Colors.black54,
               fontSize: 12,
@@ -475,7 +475,7 @@ class _QuizDetail extends StatelessWidget {
         ),
         if (statusMessage != null) ...[
           const SizedBox(height: 12),
-          Text(statusMessage!, style: const TextStyle(color: Colors.indigo)),
+          Text(statusMessage ?? 'Null', style: const TextStyle(color: Colors.indigo)),
         ],
         const SizedBox(height: 12),
         Text('해설', style: Theme.of(context).textTheme.titleSmall),

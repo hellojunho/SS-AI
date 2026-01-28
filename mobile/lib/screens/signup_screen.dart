@@ -30,7 +30,8 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) {
+    final formState = _formKey.currentState;
+    if (formState == null || !formState.validate()) {
       return;
     }
     setState(() {

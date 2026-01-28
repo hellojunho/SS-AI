@@ -19,6 +19,8 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     last_logined: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     token: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    deactivated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     chat_records = relationship("ChatRecord", back_populates="user")
     chat_summaries = relationship("ChatSummary", back_populates="user")

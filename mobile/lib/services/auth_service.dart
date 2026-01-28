@@ -75,6 +75,24 @@ class AuthService {
     await _storage.clear();
   }
 
+  Future<void> withdraw() async {
+    final token = await ensureAccessToken();
+    if (token == null) {
+      throw Exception('로그인이 필요합니다.');
+    }
+    final response = await http.post(
+      Uri.parse('$apiBaseUrl/auth/withdraw'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    if (response.statusCode != 204) {
+      throw Exception('회원 탈퇴에 실패했습니다.');
+    }
+    await _storage.clear();
+  }
+
   Future<String?> ensureAccessToken() async {
     if (await _isAccessTokenValid()) {
       return _storage.readAccessToken();

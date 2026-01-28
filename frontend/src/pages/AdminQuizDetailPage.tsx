@@ -28,6 +28,17 @@ const AdminQuizDetailPage = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [mixing, setMixing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [formState, setFormState] = useState({
+    title: '',
+    question: '',
+    choices: '',
+    correct: '',
+    wrong: '',
+    explanation: '',
+    reference: '',
+    link: '',
+  })
 
   const quizId = useMemo(() => {
     if (!id) return null
@@ -43,20 +54,16 @@ const AdminQuizDetailPage = () => {
     return stripped.trim()
   }
 
-  const formatReference = (value: string) => {
-    const normalized = normalizeText(value)
-    if (!normalized.trim()) return null
-    const urlRegex = /(https?:\/\/[^\s]+)/g
-    const parts = normalized.split(urlRegex)
-    return parts.map((part, index) => {
-      if (/^https?:\/\//.test(part)) {
-        return (
-          <a key={`${part}-${index}`} href={part} target="_blank" rel="noreferrer">
-            {part}
-          </a>
-        )
-      }
-      return <span key={`${part}-${index}`}>{part}</span>
+  const syncFormState = (data: AdminQuiz) => {
+    setFormState({
+      title: normalizeText(data.title),
+      question: normalizeText(data.question),
+      choices: data.choices.map((choice) => normalizeText(choice)).join('\n'),
+      correct: normalizeText(data.correct),
+      wrong: data.wrong.map((item) => normalizeText(item)).join('\n'),
+      explanation: normalizeText(data.explanation),
+      reference: normalizeText(data.reference),
+      link: normalizeText(data.link),
     })
   }
 
@@ -76,6 +83,9 @@ const AdminQuizDetailPage = () => {
           setErrorMessage('해당 퀴즈를 찾을 수 없습니다.')
         }
         setQuiz(selected)
+        if (selected) {
+          syncFormState(selected)
+        }
       } catch (error) {
         setErrorMessage('퀴즈를 불러오지 못했습니다.')
       } finally {
@@ -124,10 +134,56 @@ const AdminQuizDetailPage = () => {
           <div className="admin-quiz-detail-header">
             <div>
               <span className="admin-quiz-detail-label">QUIZ</span>
-              <h2>{normalizeText(quiz.title)}</h2>
+              <input
+                className="admin-quiz-title-input"
+                value={formState.title}
+                onChange={(event) => setFormState({ ...formState, title: event.target.value })}
+              />
               <p className="admin-quiz-detail-meta">생성 사용자: {quiz.source_user_id || '-'}</p>
             </div>
             <div className="admin-quiz-detail-actions">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!quiz) return
+                  setSaving(true)
+                  setErrorMessage(null)
+                  try {
+                    const payload = {
+                      title: formState.title,
+                      question: formState.question,
+                      choices: formState.choices
+                        .split('\n')
+                        .map((item) => item.trim())
+                        .filter(Boolean),
+                      correct: formState.correct,
+                      wrong: formState.wrong
+                        .split('\n')
+                        .map((item) => item.trim())
+                        .filter(Boolean),
+                      explanation: formState.explanation,
+                      reference: formState.reference,
+                      link: formState.link,
+                    }
+                    const res = await authorizedFetch(`${API_BASE_URL}/quiz/admin/${quiz.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(payload),
+                    })
+                    if (!res.ok) throw new Error('수정 실패')
+                    const data = (await res.json()) as AdminQuiz
+                    setQuiz(data)
+                    syncFormState(data)
+                  } catch (err) {
+                    setErrorMessage('퀴즈를 저장하지 못했습니다.')
+                  } finally {
+                    setSaving(false)
+                  }
+                }}
+                disabled={saving}
+              >
+                {saving ? '저장 중...' : '저장'}
+              </button>
               <button
                 type="button"
                 onClick={async () => {
@@ -139,6 +195,7 @@ const AdminQuizDetailPage = () => {
                     if (!res.ok) throw new Error('mix 실패')
                     const data = (await res.json()) as AdminQuiz
                     setQuiz(data)
+                    syncFormState(data)
                   } catch (err) {
                     setErrorMessage('퀴즈를 섞지 못했습니다.')
                   } finally {
@@ -175,49 +232,60 @@ const AdminQuizDetailPage = () => {
           </div>
           <div className="admin-quiz-detail-question">
             <div className="admin-quiz-detail-chip">Q1</div>
-            <p>{normalizeText(quiz.question)}</p>
+            <textarea
+              className="admin-quiz-textarea"
+              value={formState.question}
+              onChange={(event) => setFormState({ ...formState, question: event.target.value })}
+            />
           </div>
           <div className="admin-quiz-detail-grid">
             <div className="admin-quiz-detail-block">
               <span className="admin-quiz-detail-block-label">보기</span>
-              <ol className="admin-quiz-detail-list">
-                {quiz.choices.map((choice, index) => (
-                  <li key={`${choice}-${index}`}>
-                    <span className="admin-quiz-detail-list-index">{index + 1}.</span>
-                    <span>{normalizeText(choice)}</span>
-                  </li>
-                ))}
-              </ol>
+              <textarea
+                className="admin-quiz-textarea"
+                value={formState.choices}
+                onChange={(event) => setFormState({ ...formState, choices: event.target.value })}
+              />
             </div>
             <div className="admin-quiz-detail-block">
               <span className="admin-quiz-detail-block-label">정답</span>
-              <p className="admin-quiz-detail-answer">{normalizeText(quiz.correct)}</p>
+              <input
+                className="admin-quiz-input"
+                value={formState.correct}
+                onChange={(event) => setFormState({ ...formState, correct: event.target.value })}
+              />
               <span className="admin-quiz-detail-block-label">오답 보기</span>
-              <ul className="admin-quiz-detail-list admin-quiz-detail-wrong">
-                {quiz.wrong.map((choice, index) => (
-                  <li key={`${choice}-${index}`}>{normalizeText(choice)}</li>
-                ))}
-              </ul>
+              <textarea
+                className="admin-quiz-textarea"
+                value={formState.wrong}
+                onChange={(event) => setFormState({ ...formState, wrong: event.target.value })}
+              />
             </div>
           </div>
-          {normalizeText(quiz.explanation) && (
-            <div className="admin-quiz-detail-block">
-              <span className="admin-quiz-detail-block-label">해설</span>
-              <p className="admin-quiz-detail-muted">{normalizeText(quiz.explanation)}</p>
-            </div>
-          )}
-          {normalizeText(quiz.link) && (
-            <div className="admin-quiz-detail-block">
-              <span className="admin-quiz-detail-block-label">문항 출처</span>
-              <p className="admin-quiz-detail-muted">{formatReference(quiz.link)}</p>
-            </div>
-          )}
-          {normalizeText(quiz.reference) && (
-            <div className="admin-quiz-detail-block">
-              <span className="admin-quiz-detail-block-label">참고자료</span>
-              <p className="admin-quiz-detail-muted">{formatReference(quiz.reference)}</p>
-            </div>
-          )}
+          <div className="admin-quiz-detail-block">
+            <span className="admin-quiz-detail-block-label">해설</span>
+            <textarea
+              className="admin-quiz-textarea"
+              value={formState.explanation}
+              onChange={(event) => setFormState({ ...formState, explanation: event.target.value })}
+            />
+          </div>
+          <div className="admin-quiz-detail-block">
+            <span className="admin-quiz-detail-block-label">문항 출처</span>
+            <textarea
+              className="admin-quiz-textarea"
+              value={formState.link}
+              onChange={(event) => setFormState({ ...formState, link: event.target.value })}
+            />
+          </div>
+          <div className="admin-quiz-detail-block">
+            <span className="admin-quiz-detail-block-label">참고자료</span>
+            <textarea
+              className="admin-quiz-textarea"
+              value={formState.reference}
+              onChange={(event) => setFormState({ ...formState, reference: event.target.value })}
+            />
+          </div>
         </div>
       )}
     </section>

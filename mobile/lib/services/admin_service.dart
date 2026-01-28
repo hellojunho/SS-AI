@@ -17,6 +17,33 @@ class AdminService {
     return payload.map((item) => AdminUser.fromJson(item as Map<String, dynamic>)).toList();
   }
 
+  Future<AdminUser> fetchUserDetail(int id) async {
+    final response = await _client.get('/auth/admin/users/$id', authorized: true);
+    if (response.statusCode != 200) {
+      throw Exception('사용자 정보를 불러오지 못했습니다.');
+    }
+    return AdminUser.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<AdminUser> updateUser(int id, Map<String, dynamic> payload) async {
+    final response = await _client.patch(
+      '/auth/admin/users/$id',
+      authorized: true,
+      body: payload,
+    );
+    if (response.statusCode != 200) {
+      throw Exception('사용자 정보를 수정하지 못했습니다.');
+    }
+    return AdminUser.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<void> deleteUser(int id) async {
+    final response = await _client.delete('/auth/admin/users/$id', authorized: true);
+    if (response.statusCode != 204) {
+      throw Exception('사용자를 삭제하지 못했습니다.');
+    }
+  }
+
   Future<List<AdminQuizSummary>> fetchQuizzes() async {
     final response = await _client.get('/quiz/admin/list', authorized: true);
     if (response.statusCode != 200) {
@@ -24,6 +51,44 @@ class AdminService {
     }
     final payload = jsonDecode(response.body) as List<dynamic>;
     return payload.map((item) => AdminQuizSummary.fromJson(item as Map<String, dynamic>)).toList();
+  }
+
+  Future<AdminQuizDetail> fetchQuizDetail(int id) async {
+    final response = await _client.get('/quiz/admin/$id', authorized: true);
+    if (response.statusCode != 200) {
+      throw Exception('퀴즈 정보를 불러오지 못했습니다.');
+    }
+    return AdminQuizDetail.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<AdminQuizDetail> updateQuiz(int id, Map<String, dynamic> payload) async {
+    final response = await _client.patch(
+      '/quiz/admin/$id',
+      authorized: true,
+      body: payload,
+    );
+    if (response.statusCode != 200) {
+      throw Exception('퀴즈 정보를 수정하지 못했습니다.');
+    }
+    return AdminQuizDetail.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<void> deleteQuiz(int id) async {
+    final response = await _client.delete('/quiz/admin/$id', authorized: true);
+    if (response.statusCode != 200) {
+      throw Exception('퀴즈를 삭제하지 못했습니다.');
+    }
+  }
+
+  Future<List<AdminTrafficStats>> fetchTrafficStats() async {
+    final response = await _client.get('/auth/admin/traffic', authorized: true);
+    if (response.statusCode != 200) {
+      throw Exception('유입량 정보를 불러오지 못했습니다.');
+    }
+    final payload = jsonDecode(response.body) as List<dynamic>;
+    return payload
+        .map((item) => AdminTrafficStats.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   Future<LlmUsage> fetchLlmUsage() async {

@@ -92,6 +92,14 @@ const AdminUserEditPage = () => {
           </select>
         </label>
         <label className="label">
+          상태
+          <input value={user.is_active ? '활성' : '탈퇴'} readOnly />
+        </label>
+        <label className="label">
+          탈퇴 일시
+          <input value={user.deactivated_at ? new Date(user.deactivated_at).toLocaleString() : '-'} readOnly />
+        </label>
+        <label className="label">
           새 비밀번호
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="변경할 새 비밀번호" />
         </label>

@@ -14,6 +14,8 @@ type AdminUser = {
   role: string
   created_at: string
   last_logined: string | null
+  is_active: boolean
+  deactivated_at: string | null
 }
 
 type SortKey = 'user_id' | 'user_name' | 'email' | 'role' | 'created_at' | 'last_logined'
@@ -42,7 +44,7 @@ const AdminUsersPage = () => {
     password: '',
     role: 'general',
   })
-  
+
   const [searchId, setSearchId] = useState('')
   const [searchEmail, setSearchEmail] = useState('')
   const [searchRole, setSearchRole] = useState('')
@@ -357,6 +359,7 @@ const AdminUsersPage = () => {
             <button type="button" className="admin-sort" onClick={() => handleSort('role')}>
               역할 {renderSortIndicator('role')}
             </button>
+            <span>상태</span>
             <span>관리</span>
           </div>
           {usersLoading ? (
@@ -367,9 +370,13 @@ const AdminUsersPage = () => {
             pagedUsers.map((user, idx) => (
               <div key={user.id} className="admin-table-row">
                 <span>{(currentPage - 1) * PAGE_SIZE + idx + 1}</span>
-                    <button type="button" className="link-button" onClick={() => navigate(`/admin/users/${user.id}`)}>
-                      {user.user_id}
-                    </button>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => navigate(`/admin/users/${user.id}`)}
+                >
+                  {user.user_id}
+                </button>
                 <span>{user.user_name}</span>
                 <span>{user.email}</span>
                 <select
@@ -379,6 +386,7 @@ const AdminUsersPage = () => {
                   <option value="general">general</option>
                   <option value="admin">admin</option>
                 </select>
+                <span>{user.is_active ? '활성' : '탈퇴'}</span>
                 <div className="admin-user-actions">
                   <button
                     type="button"

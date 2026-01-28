@@ -135,9 +135,11 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
         if (_isAllScope) {
           _allQuiz = nextQuiz;
           _selectedAnswerAll = null;
+          _statusMessageAll = null;
         } else {
           _userQuiz = nextQuiz;
           _selectedAnswerUser = null;
+          _statusMessageUser = null;
         }
       });
     } catch (error) {
@@ -172,6 +174,10 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
       setState(() {
         _setStatusMessage(isCorrect ? '정답입니다!' : '오답입니다.');
       });
+      if (isCorrect) {
+        await _loadNext();
+        return;
+      }
       if (mounted) {
         await showDialog<void>(
           context: context,
@@ -182,14 +188,6 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(isCorrect ? '잘했어요! 🎉' : '아쉽지만 다시 도전해 보세요.'),
-                if (isCorrect) ...[
-                  const SizedBox(height: 12),
-                  Text('정답: ${quiz.correct}'),
-                ],
-                if (result.answerHistory.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text('답변 기록: ${result.answerHistory.join(', ')}'),
-                ],
               ],
             ),
             actions: [

@@ -12,4 +12,5 @@ String get apiBaseUrl {
   return 'http://localhost:5001';
 }
 
-const int sessionMinutes = 10080;
+const int accessTokenMinutes = 15;
+const int refreshTokenDays = 30;

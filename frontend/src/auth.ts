@@ -4,7 +4,8 @@ const ACCESS_TOKEN_KEY = 'accessToken'
 const REFRESH_TOKEN_KEY = 'refreshToken'
 const ACCESS_EXP_KEY = 'accessTokenExpiresAt'
 const REFRESH_EXP_KEY = 'refreshTokenExpiresAt'
-const SESSION_MINUTES = 10080
+const ACCESS_TOKEN_MINUTES = 15
+const REFRESH_TOKEN_DAYS = 30
 
 type TokenResponse = {
   access_token: string
@@ -14,11 +15,12 @@ type TokenResponse = {
 const getNumber = (value: string | null) => (value ? Number(value) : 0)
 
 export const saveTokens = (accessToken: string, refreshToken: string) => {
-  const expiresAt = Date.now() + SESSION_MINUTES * 60 * 1000
+  const accessExpiresAt = Date.now() + ACCESS_TOKEN_MINUTES * 60 * 1000
+  const refreshExpiresAt = Date.now() + REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000
   localStorage.setItem(ACCESS_TOKEN_KEY, accessToken)
   localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
-  localStorage.setItem(ACCESS_EXP_KEY, String(expiresAt))
-  localStorage.setItem(REFRESH_EXP_KEY, String(expiresAt))
+  localStorage.setItem(ACCESS_EXP_KEY, String(accessExpiresAt))
+  localStorage.setItem(REFRESH_EXP_KEY, String(refreshExpiresAt))
   window.dispatchEvent(new Event('authchange'))
 }
 

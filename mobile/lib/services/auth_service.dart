@@ -144,13 +144,16 @@ class AuthService {
   }
 
   Future<void> _saveTokens(TokenPair tokenPair) async {
-    final expiresAt =
-        DateTime.now().add(const Duration(minutes: sessionMinutes)).millisecondsSinceEpoch;
+    final now = DateTime.now();
+    final accessExpiresAt =
+        now.add(const Duration(minutes: accessTokenMinutes)).millisecondsSinceEpoch;
+    final refreshExpiresAt =
+        now.add(const Duration(days: refreshTokenDays)).millisecondsSinceEpoch;
     await _storage.saveTokens(
       accessToken: tokenPair.accessToken,
       refreshToken: tokenPair.refreshToken,
-      accessExpiry: expiresAt,
-      refreshExpiry: expiresAt,
+      accessExpiry: accessExpiresAt,
+      refreshExpiry: refreshExpiresAt,
     );
   }
 }

@@ -41,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       widget.onLogin(true);
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        Navigator.of(context).pushNamedAndRemoveUntil('/me', (route) => false);
       }
     } catch (error) {
       setState(() {

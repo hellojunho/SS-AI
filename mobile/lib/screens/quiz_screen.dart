@@ -182,8 +182,10 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(isCorrect ? '잘했어요! 🎉' : '아쉽지만 다시 도전해 보세요.'),
-                const SizedBox(height: 12),
-                Text('정답: ${quiz.correct}'),
+                if (isCorrect) ...[
+                  const SizedBox(height: 12),
+                  Text('정답: ${quiz.correct}'),
+                ],
                 if (result.answerHistory.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text('답변 기록: ${result.answerHistory.join(', ')}'),

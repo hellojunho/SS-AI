@@ -92,19 +92,44 @@ class AdminQuizDetail {
 class AdminTrafficStats {
   const AdminTrafficStats({
     required this.period,
+    required this.buckets,
+  });
+
+  final String period;
+  final List<AdminTrafficBucket> buckets;
+
+  int get signups => buckets.fold<int>(0, (total, item) => total + item.signups);
+
+  int get logins => buckets.fold<int>(0, (total, item) => total + item.logins);
+
+  int get withdrawals => buckets.fold<int>(0, (total, item) => total + item.withdrawals);
+
+  factory AdminTrafficStats.fromJson(Map<String, dynamic> json) {
+    return AdminTrafficStats(
+      period: json['period'] as String,
+      buckets: (json['buckets'] as List<dynamic>? ?? [])
+          .map((item) => AdminTrafficBucket.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class AdminTrafficBucket {
+  const AdminTrafficBucket({
+    required this.label,
     required this.signups,
     required this.logins,
     required this.withdrawals,
   });
 
-  final String period;
+  final String label;
   final int signups;
   final int logins;
   final int withdrawals;
 
-  factory AdminTrafficStats.fromJson(Map<String, dynamic> json) {
-    return AdminTrafficStats(
-      period: json['period'] as String,
+  factory AdminTrafficBucket.fromJson(Map<String, dynamic> json) {
+    return AdminTrafficBucket(
+      label: json['label'] as String,
       signups: json['signups'] as int,
       logins: json['logins'] as int,
       withdrawals: json['withdrawals'] as int,

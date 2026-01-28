@@ -90,6 +90,15 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     },
                   ),
                 ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await Navigator.pushNamed(context, '/signup');
+          if (!mounted) return;
+          await _loadUsers();
+        },
+        label: const Text('사용자 생성'),
+        icon: const Icon(Icons.person_add),
+      ),
     );
   }
 }

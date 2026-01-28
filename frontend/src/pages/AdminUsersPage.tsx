@@ -33,8 +33,6 @@ const AdminUsersPage = () => {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [usersLoading, setUsersLoading] = useState(false)
   const [usersError, setUsersError] = useState<string | null>(null)
-  const [updatingUserId, setUpdatingUserId] = useState<number | null>(null)
-  const [deletingUserId, setDeletingUserId] = useState<number | null>(null)
   const [createLoading, setCreateLoading] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const createSectionRef = useRef<HTMLDivElement | null>(null)
@@ -80,43 +78,6 @@ const AdminUsersPage = () => {
     setPage(1)
   }, [searchId, searchEmail, searchRole])
 
-  const handleUserChange = (
-    userId: number,
-    field: keyof Pick<AdminUser, 'user_name' | 'email' | 'role'>,
-    value: string,
-  ) => {
-    setUsers((prev) =>
-      prev.map((user) => (user.id === userId ? { ...user, [field]: value } : user)),
-    )
-  }
-
-  const handleUserSave = async (user: AdminUser) => {
-    setUpdatingUserId(user.id)
-    setUsersError(null)
-    try {
-      // Only update role from dashboard; other fields are read-only here.
-      const payload = {
-        role: user.role,
-      }
-      const response = await authorizedFetch(`${API_BASE_URL}/auth/admin/users/${user.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
-      if (!response.ok) {
-        throw new Error('사용자 정보를 수정하지 못했습니다.')
-      }
-      const updated = (await response.json()) as AdminUser
-      setUsers((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
-    } catch (error) {
-      setUsersError('사용자 정보를 수정하지 못했습니다. 입력값을 확인해주세요.')
-    } finally {
-      setUpdatingUserId(null)
-    }
-  }
-
   const handleCreateUser = async () => {
     if (createLoading) return
     setCreateLoading(true)
@@ -145,27 +106,6 @@ const AdminUsersPage = () => {
       setCreateError('사용자 생성을 완료하지 못했습니다. 입력값을 확인해주세요.')
     } finally {
       setCreateLoading(false)
-    }
-  }
-
-  const handleDeleteUser = async (user: AdminUser) => {
-    if (deletingUserId) return
-    const confirmed = window.confirm(`${user.user_id} 사용자를 삭제할까요?`)
-    if (!confirmed) return
-    setDeletingUserId(user.id)
-    setUsersError(null)
-    try {
-      const response = await authorizedFetch(`${API_BASE_URL}/auth/admin/users/${user.id}`, {
-        method: 'DELETE',
-      })
-      if (!response.ok) {
-        throw new Error('사용자를 삭제하지 못했습니다.')
-      }
-      setUsers((prev) => prev.filter((item) => item.id !== user.id))
-    } catch (error) {
-      setUsersError('사용자를 삭제하지 못했습니다.')
-    } finally {
-      setDeletingUserId(null)
     }
   }
 
@@ -372,7 +312,6 @@ const AdminUsersPage = () => {
               역할 {renderSortIndicator('role')}
             </button>
             <span>상태</span>
-            <span>관리</span>
           </div>
           {usersLoading ? (
             <div className="admin-table-empty">사용자 정보를 불러오는 중...</div>
@@ -391,38 +330,8 @@ const AdminUsersPage = () => {
                 </button>
                 <span>{user.user_name}</span>
                 <span>{user.email}</span>
-                <select
-                  value={user.role}
-                  onChange={(event) => handleUserChange(user.id, 'role', event.target.value)}
-                >
-                  <option value="general">general</option>
-                  <option value="admin">admin</option>
-                </select>
+                <span>{user.role}</span>
                 <span>{user.is_active ? '활성' : '탈퇴'}</span>
-                <div className="admin-user-actions">
-                  <button
-                    type="button"
-                    onClick={() => handleUserSave(user)}
-                    disabled={updatingUserId === user.id}
-                  >
-                    {updatingUserId === user.id ? (
-                      <span className="button-with-spinner">
-                        <span className="spinner" aria-label="사용자 업데이트 중" />
-                        저장 중
-                      </span>
-                    ) : (
-                      '저장'
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    className="ghost"
-                    onClick={() => handleDeleteUser(user)}
-                    disabled={deletingUserId === user.id}
-                  >
-                    {deletingUserId === user.id ? '삭제 중' : '삭제'}
-                  </button>
-                </div>
               </div>
             ))
           )}

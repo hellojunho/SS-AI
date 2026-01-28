@@ -129,7 +129,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('로그인 화면으로'),
+                    child: const Text('이전 화면으로'),
                   ),
                 ],
               ),

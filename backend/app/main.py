@@ -132,22 +132,22 @@ def _ensure_role_tables() -> None:
     with engine.begin() as connection:
         connection.execute(
             text(
-                "INSERT INTO admin_users (user_id) "
-                "SELECT id FROM users WHERE role = 'admin' "
+                "INSERT INTO admin_users (user_id, created_at) "
+                "SELECT id, NOW() FROM users WHERE role = 'admin' "
                 "AND id NOT IN (SELECT user_id FROM admin_users)"
             )
         )
         connection.execute(
             text(
-                "INSERT INTO coach_users (user_id) "
-                "SELECT id FROM users WHERE role = 'coach' "
+                "INSERT INTO coach_users (user_id, created_at) "
+                "SELECT id, NOW() FROM users WHERE role = 'coach' "
                 "AND id NOT IN (SELECT user_id FROM coach_users)"
             )
         )
         connection.execute(
             text(
-                "INSERT INTO general_users (user_id) "
-                "SELECT id FROM users WHERE role = 'general' "
+                "INSERT INTO general_users (user_id, created_at) "
+                "SELECT id, NOW() FROM users WHERE role = 'general' "
                 "AND id NOT IN (SELECT user_id FROM general_users)"
             )
         )

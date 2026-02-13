@@ -19,3 +19,4 @@ pubspec.lock
 
 *.env
 celerybeat-schedule
+backend-drf/celerybeat-schedule

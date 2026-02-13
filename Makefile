@@ -29,3 +29,7 @@ mobile-update:
 	docker compose up -d --build mobile
 	@echo "Mobile service rebuilt and started (background)."
 	@echo "To update Flutter deps locally: cd mobile && flutter pub get"
+
+superuser:
+	# Create a superuser for the backend-drf (Django)
+	docker compose exec backend-drf python manage.py createsuperuser

@@ -12,6 +12,11 @@ services:
       - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   redis:
     image: redis:7
@@ -45,11 +50,14 @@ services:
       - DEV_RELOAD=1
     volumes:
       - ./backend-drf:/app
+      - ./backend/chat:/app/chat
     ports:
       - "8080:8080"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   celery-worker:
     build:
@@ -59,8 +67,10 @@ services:
     volumes:
       - ./backend-drf:/app
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     command: ["celery", "-A", "ss_ai_drf", "worker", "-l", "info"]
 
   celery-beat:
@@ -71,8 +81,10 @@ services:
     volumes:
       - ./backend-drf:/app
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     command: ["celery", "-A", "ss_ai_drf", "beat", "-l", "info"]
 
   frontend:

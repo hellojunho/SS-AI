@@ -1,9 +1,13 @@
+from django.contrib.auth import get_user_model
 from django.db import connection
 from django.utils import timezone
 
 from .auth_utils import hash_password
 from .models import AdminUser, CoachUser, GeneralUser, User
 from .role_utils import ensure_role_profile
+
+
+DjangoUser = get_user_model()
 
 
 def _table_names() -> set[str]:
@@ -59,6 +63,16 @@ def ensure_admin_user() -> None:
             token=0,
         )
         AdminUser.objects.get_or_create(user=user)
+
+
+def ensure_django_superuser() -> None:
+    """Create Django admin superuser for admin panel access"""
+    if not DjangoUser.objects.filter(username="admin").exists():
+        DjangoUser.objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="admin"
+        )
 
 
 def ensure_role_tables() -> None:

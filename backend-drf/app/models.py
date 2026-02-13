@@ -26,6 +26,8 @@ class User(models.Model):
 
     class Meta:
         db_table = "users"
+        verbose_name = "User"
+        verbose_name_plural = "User - Users"
 
     @property
     def is_authenticated(self) -> bool:
@@ -38,6 +40,8 @@ class AdminUser(models.Model):
 
     class Meta:
         db_table = "admin_users"
+        verbose_name = "Admin User"
+        verbose_name_plural = "User - Admin Users"
 
 
 class CoachUser(models.Model):
@@ -46,6 +50,8 @@ class CoachUser(models.Model):
 
     class Meta:
         db_table = "coach_users"
+        verbose_name = "Coach User"
+        verbose_name_plural = "User - Coach Users"
 
 
 class GeneralUser(models.Model):
@@ -54,6 +60,8 @@ class GeneralUser(models.Model):
 
     class Meta:
         db_table = "general_users"
+        verbose_name = "General User"
+        verbose_name_plural = "User - General Users"
 
 
 class CoachStudent(models.Model):
@@ -63,6 +71,8 @@ class CoachStudent(models.Model):
 
     class Meta:
         db_table = "coach_students"
+        verbose_name = "Coach-Student Relation"
+        verbose_name_plural = "User - Coach-Student Relations"
         constraints = [
             models.UniqueConstraint(fields=["coach", "student"], name="uniq_coach_student"),
         ]
@@ -75,6 +85,8 @@ class ChatRecord(models.Model):
 
     class Meta:
         db_table = "chat_records"
+        verbose_name = "Chat Record"
+        verbose_name_plural = "Chat - Chat Records"
 
 
 class ChatSummary(models.Model):
@@ -84,6 +96,8 @@ class ChatSummary(models.Model):
 
     class Meta:
         db_table = "chat_summaries"
+        verbose_name = "Chat Summary"
+        verbose_name_plural = "Chat - Chat Summaries"
 
 
 class Quiz(models.Model):
@@ -96,6 +110,8 @@ class Quiz(models.Model):
 
     class Meta:
         db_table = "quizzes"
+        verbose_name = "Quiz"
+        verbose_name_plural = "Quiz - Quizzes"
 
 
 class QuizQuestion(models.Model):
@@ -110,6 +126,8 @@ class QuizQuestion(models.Model):
 
     class Meta:
         db_table = "quiz_questions"
+        verbose_name = "Quiz Question"
+        verbose_name_plural = "Quiz - Quiz Questions"
 
 
 class QuizCorrect(models.Model):
@@ -120,6 +138,8 @@ class QuizCorrect(models.Model):
 
     class Meta:
         db_table = "quiz_corrects"
+        verbose_name = "Quiz Correct Answer"
+        verbose_name_plural = "Quiz - Quiz Correct Answers"
 
 
 class QuizWrong(models.Model):
@@ -130,6 +150,8 @@ class QuizWrong(models.Model):
 
     class Meta:
         db_table = "quiz_wrongs"
+        verbose_name = "Quiz Wrong Answer"
+        verbose_name_plural = "Quiz - Quiz Wrong Answers"
 
 
 class QuizAnswer(models.Model):
@@ -142,6 +164,8 @@ class QuizAnswer(models.Model):
 
     class Meta:
         db_table = "quiz_answers"
+        verbose_name = "Quiz Answer"
+        verbose_name_plural = "Quiz - Quiz Answers"
 
 
 class WrongQuestion(models.Model):
@@ -156,6 +180,8 @@ class WrongQuestion(models.Model):
 
     class Meta:
         db_table = "wrong_questions"
+        verbose_name = "Wrong Question"
+        verbose_name_plural = "Quiz - Wrong Questions"
 
 
 class BackgroundJob(models.Model):
@@ -180,4 +206,6 @@ class BackgroundJob(models.Model):
 
     class Meta:
         db_table = "background_jobs"
+        verbose_name = "Background Job"
+        verbose_name_plural = "Task - Background Jobs"
         indexes = [models.Index(fields=["job_type", "created_at"]) ]

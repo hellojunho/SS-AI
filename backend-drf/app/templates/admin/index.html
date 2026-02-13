@@ -1,0 +1,142 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_categories %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .admin-category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-top: 20px;
+    }
+
+    .admin-category-card {
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 10px 20px rgba(17, 24, 39, 0.08);
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+
+    .admin-category-title {
+      margin: 0;
+      padding: 12px 16px;
+      background: #2b5d73;
+      color: #ffffff;
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .admin-category-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .admin-category-table th,
+    .admin-category-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: middle;
+    }
+
+    .admin-category-table tr:last-child th,
+    .admin-category-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .admin-category-table th {
+      font-weight: 600;
+      text-align: left;
+      color: #111827;
+    }
+
+    .admin-category-actions {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .admin-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 64px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      margin-left: 8px;
+    }
+
+    .admin-action--add {
+      background: #28a745;
+      color: #ffffff;
+    }
+
+    .admin-action--change {
+      background: #6b7280;
+      color: #ffffff;
+    }
+
+    .admin-action--disabled {
+      background: #e5e7eb;
+      color: #9ca3af;
+      cursor: default;
+    }
+
+    .admin-category-empty {
+      padding: 16px;
+      color: #6b7280;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div id="content-main">
+    {% if app_list %}
+      {% get_admin_categories app_list as categories %}
+      <div class="admin-category-grid">
+        {% for category in categories %}
+          <section class="admin-category-card">
+            <h2 class="admin-category-title">{{ category.title }}</h2>
+            <table class="admin-category-table">
+              <tbody>
+                {% for model in category.models %}
+                  <tr>
+                    <th scope="row">
+                      {% if model.admin_url %}
+                        <a href="{{ model.admin_url }}">{{ model.name }}</a>
+                      {% else %}
+                        {{ model.name }}
+                      {% endif %}
+                    </th>
+                    <td class="admin-category-actions">
+                      {% if model.add_url %}
+                        <a class="admin-action admin-action--add" href="{{ model.add_url }}">{% translate "Add" %}</a>
+                      {% else %}
+                        <span class="admin-action admin-action--disabled">{% translate "Add" %}</span>
+                      {% endif %}
+                      {% if model.admin_url %}
+                        <a class="admin-action admin-action--change" href="{{ model.admin_url }}">{% translate "Change" %}</a>
+                      {% else %}
+                        <span class="admin-action admin-action--disabled">{% translate "Change" %}</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td class="admin-category-empty" colspan="2">{% translate "No models available" %}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </section>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>{% translate "You don't have permission to view or edit anything." %}</p>
+    {% endif %}
+  </div>
+{% endblock %}

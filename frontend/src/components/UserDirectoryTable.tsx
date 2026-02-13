@@ -181,21 +181,7 @@ const UserDirectoryTable = ({
             <button type="button" className="admin-sort" onClick={() => handleSort('email')}>
               이메일 {renderSortIndicator('email')}
             </button>
-            <button type="button" className="admin-sort" onClick={() => handleSort('role')}>
-              역할 {renderSortIndicator('role')}
-            </button>
-            {showDateColumns && (
-              <button type="button" className="admin-sort" onClick={() => handleSort('created_at')}>
-                가입일 {renderSortIndicator('created_at')}
-              </button>
-            )}
-            {showDateColumns && (
-              <button type="button" className="admin-sort" onClick={() => handleSort('last_logined')}>
-                최근 로그인 {renderSortIndicator('last_logined')}
-              </button>
-            )}
-            <span>상태</span>
-            {rowAction && <span>액션</span>}
+            {rowAction && <span>등록 해제</span>}
           </div>
           {loading ? (
             <div className="admin-table-empty">사용자 정보를 불러오는 중...</div>
@@ -223,10 +209,6 @@ const UserDirectoryTable = ({
                 )}
                 <span>{user.user_name}</span>
                 <span>{user.email}</span>
-                <span>{user.role}</span>
-                {showDateColumns && <span>{formatDate(user.created_at)}</span>}
-                {showDateColumns && <span>{formatDate(user.last_logined)}</span>}
-                <span>{user.is_active ? '활성' : '탈퇴'}</span>
                 {rowAction && <div>{rowAction(user)}</div>}
               </div>
             ))

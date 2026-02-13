@@ -8,7 +8,7 @@ import { API_BASE_URL } from '../config'
 const MyPage = () => {
   const navigate = useNavigate()
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated())
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [role, setRole] = useState<string | null>(null)
 
   useEffect(() => {
     const handleAuthChange = () => setIsLoggedIn(isAuthenticated())
@@ -22,7 +22,7 @@ const MyPage = () => {
 
   useEffect(() => {
     if (!isLoggedIn) {
-      setIsAdmin(false)
+      setRole(null)
       return
     }
     const fetchRole = async () => {
@@ -32,9 +32,9 @@ const MyPage = () => {
           throw new Error('사용자 정보를 불러오지 못했습니다.')
         }
         const data = (await response.json()) as { role?: string }
-        setIsAdmin(data.role === 'admin')
+        setRole(data.role ?? null)
       } catch (error) {
-        setIsAdmin(false)
+        setRole(null)
       }
     }
     fetchRole()
@@ -111,7 +111,23 @@ const MyPage = () => {
           </div>
         </div>
       )}
-      {isAdmin && (
+      {role === 'coach' && (
+        <div
+          className="card chat-preview"
+          onClick={() => navigate('/coach/students')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              navigate('/coach/students')
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          <h2>학생 등록 페이지</h2>
+          <p>학생 아이디를 검색하고 내 학생 목록을 관리할 수 있어요.</p>
+        </div>
+      )}
+      {role === 'admin' && (
         <div
           className="card chat-preview"
           onClick={() => navigate('/admin')}

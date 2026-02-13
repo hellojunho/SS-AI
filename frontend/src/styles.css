@@ -143,7 +143,15 @@ h1 {
 }
 
 .admin-users-table .admin-table-row {
-  grid-template-columns: 48px 120px minmax(100px, 150px) minmax(160px, 1fr) 140px 170px;
+  grid-template-columns: 48px 120px minmax(100px, 130px) minmax(160px, 1fr) 88px 165px 165px 74px;
+}
+
+.admin-users-table .admin-table-row.admin-user-row {
+  grid-template-columns: 48px 110px minmax(92px, 120px) minmax(150px, 1fr) 75px 150px 150px 70px;
+}
+
+.admin-users-table .admin-table-row.admin-user-row.with-action {
+  grid-template-columns: 48px 110px minmax(92px, 120px) minmax(140px, 1fr) 75px 140px 140px 70px 96px;
 }
 
 .admin-table-row {
@@ -1345,4 +1353,24 @@ button:disabled {
 .modal-actions .secondary {
   background: #f3f4f6;
   color: #111827;
+}
+
+
+.coach-students-hero {
+  background: linear-gradient(135deg, #ecfeff, #eff6ff);
+  border: 1px solid #bfdbfe;
+  gap: 16px;
+}
+
+.coach-students-register {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+@media (max-width: 640px) {
+  .coach-students-register {
+    grid-template-columns: 1fr;
+  }
 }

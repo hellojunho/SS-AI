@@ -1374,3 +1374,17 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+
+.coach-students-search {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+  gap: 12px;
+  align-items: end;
+}
+
+@media (max-width: 640px) {
+  .coach-students-search {
+    grid-template-columns: 1fr;
+  }
+}

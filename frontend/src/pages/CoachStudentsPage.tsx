@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { authorizedFetch } from '../api'
@@ -18,8 +18,16 @@ const CoachStudentsPage = () => {
   const [studentsLoading, setStudentsLoading] = useState(false)
   const [studentsError, setStudentsError] = useState<string | null>(null)
   const [studentIdInput, setStudentIdInput] = useState('')
+  const [studentSearchInput, setStudentSearchInput] = useState('')
+  const [studentSearchKeyword, setStudentSearchKeyword] = useState('')
   const [registerLoading, setRegisterLoading] = useState(false)
   const [registerMessage, setRegisterMessage] = useState<string | null>(null)
+
+  const filteredStudents = useMemo(() => {
+    const keyword = studentSearchKeyword.trim().toLowerCase()
+    if (!keyword) return students
+    return students.filter((student) => student.user_id.toLowerCase().includes(keyword))
+  }, [studentSearchKeyword, students])
 
   const loadStudents = async () => {
     setStudentsLoading(true)
@@ -104,6 +112,15 @@ const CoachStudentsPage = () => {
     }
   }
 
+  const handleSearchStudent = () => {
+    setStudentSearchKeyword(studentSearchInput.trim())
+  }
+
+  const handleResetStudentSearch = () => {
+    setStudentSearchInput('')
+    setStudentSearchKeyword('')
+  }
+
   if (status === 'loading') {
     return (
       <section className="page">
@@ -155,11 +172,34 @@ const CoachStudentsPage = () => {
         {registerMessage && <p className="helper-text">{registerMessage}</p>}
       </div>
 
+      <div className="card coach-students-search">
+        <label className="label">
+          등록 학생 검색
+          <input
+            value={studentSearchInput}
+            onChange={(event) => setStudentSearchInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                handleSearchStudent()
+              }
+            }}
+            placeholder="등록된 학생 아이디를 검색하세요"
+          />
+        </label>
+        <button type="button" onClick={handleSearchStudent}>
+          학생 검색
+        </button>
+        <button type="button" className="secondary" onClick={handleResetStudentSearch}>
+          검색 초기화
+        </button>
+      </div>
+
       <UserDirectoryTable
-        users={students}
+        users={filteredStudents}
         loading={studentsLoading}
         error={studentsError}
-        emptyMessage="등록된 학생이 없습니다. 학생 아이디로 먼저 등록해보세요."
+        emptyMessage={studentSearchKeyword ? '검색 조건에 맞는 학생이 없습니다.' : '등록된 학생이 없습니다. 학생 아이디로 먼저 등록해보세요.'}
         roleOptions={['general']}
         rowAction={(student) => (
           <button

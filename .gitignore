@@ -18,3 +18,4 @@ build/
 pubspec.lock
 
 *.env
+celerybeat-schedule

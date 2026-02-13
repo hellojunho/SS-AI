@@ -1,9 +1,10 @@
 # SS-AI Sports Science
 
-FastAPI + React(TypeScript) + Flutter 기반 스포츠 과학 학습 서비스입니다. Docker Compose로 MySQL, Backend, Frontend를 함께 실행합니다.
+FastAPI + DRF + React(TypeScript) + Flutter 기반 스포츠 과학 학습 서비스입니다. Docker Compose로 MySQL, Backend, Frontend를 함께 실행합니다.
 
 ## 구성
 - **Backend**: FastAPI (`/backend`)
+- **Backend-DRF**: Django Rest Framework + Celery (`/backend-drf`)
 - **Frontend**: React + Vite (`/frontend`)
 - **Mobile**: Flutter (`/mobile`)
 - **DB**: MySQL
@@ -19,6 +20,11 @@ FastAPI + React(TypeScript) + Flutter 기반 스포츠 과학 학습 서비스�
 ### 웹 서비스 (Backend + Frontend)
 ```bash
 docker-compose up --build
+```
+
+### DRF 백엔드 실행 (포트 8000)
+```bash
+docker-compose up --build backend-drf redis celery-worker celery-beat db
 ```
 
 ### 모바일 앱

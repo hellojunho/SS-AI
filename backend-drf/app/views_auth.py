@@ -326,6 +326,21 @@ def coach_students(request):
     return Response(UserOutSerializer(student_user).data, status=status.HTTP_201_CREATED)
 
 
+@api_view(["GET"])
+@permission_classes([IsCoachRole])
+def coach_search_students(request):
+    keyword = (request.query_params.get("keyword") or "").strip()
+    if not keyword:
+        return Response([])
+
+    students = (
+        User.objects.filter(role=User.ROLE_GENERAL)
+        .filter(Q(user_id__icontains=keyword) | Q(user_name__icontains=keyword) | Q(email__icontains=keyword))
+        .order_by("-created_at")[:50]
+    )
+    return Response(UserOutSerializer(students, many=True).data)
+
+
 @api_view(["DELETE"])
 @permission_classes([IsCoachRole])
 def coach_remove_student(request, student_user_id: str):

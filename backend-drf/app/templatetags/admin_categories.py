@@ -6,37 +6,37 @@ register = template.Library()
 
 CATEGORY_ORDER: list[tuple[str, list[str]]] = [
     (
-        "Users",
+        "User",
         [
-            "User",
-            "AdminUser",
-            "CoachUser",
-            "GeneralUser",
-            "CoachStudent",
-        ],
-    ),
-    (
-        "Chat",
-        [
-            "ChatRecord",
-            "ChatSummary",
+            "app.User",
+            "app.AdminUser",
+            "app.CoachUser",
+            "app.GeneralUser",
+            "app.CoachStudent",
         ],
     ),
     (
         "Quiz",
         [
-            "Quiz",
-            "QuizQuestion",
-            "QuizCorrect",
-            "QuizWrong",
-            "QuizAnswer",
-            "WrongQuestion",
+            "app.Quiz",
+            "app.QuizQuestion",
+            "app.QuizCorrect",
+            "app.QuizWrong",
+            "app.QuizAnswer",
+            "app.WrongQuestion",
         ],
     ),
     (
-        "Tasks",
+        "Chat",
         [
-            "BackgroundJob",
+            "app.ChatRecord",
+            "app.ChatSummary",
+        ],
+    ),
+    (
+        "Task",
+        [
+            "app.BackgroundJob",
         ],
     ),
 ]
@@ -46,24 +46,31 @@ CATEGORY_ORDER: list[tuple[str, list[str]]] = [
 def get_admin_categories(app_list: list[dict]) -> list[dict]:
     models: list[dict] = []
     for app in app_list:
+        app_label = app.get("app_label")
         for model in app.get("models", []):
-            models.append(model)
+            models.append({**model, "app_label": app_label})
 
-    model_lookup = {model.get("object_name"): model for model in models}
     used = set()
     categories: list[dict] = []
 
     for title, model_names in CATEGORY_ORDER:
         bucket = []
         for model_name in model_names:
-            model = model_lookup.get(model_name)
-            if model:
-                bucket.append(model)
-                used.add(model_name)
+            for index, model in enumerate(models):
+                if index in used:
+                    continue
+                app_label = model.get("app_label")
+                object_name = model.get("object_name")
+                if not app_label or not object_name:
+                    continue
+                if model_name == f"{app_label}.{object_name}":
+                    bucket.append(model)
+                    used.add(index)
+                    break
         if bucket:
             categories.append({"title": title, "models": bucket})
 
-    leftovers = [model for model in models if model.get("object_name") not in used]
+    leftovers = [model for index, model in enumerate(models) if index not in used]
     if leftovers:
         categories.append({"title": "Other", "models": sorted(leftovers, key=lambda item: item.get("name", ""))})
 

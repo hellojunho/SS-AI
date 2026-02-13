@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -393,6 +394,33 @@ def coach_list_students(
         .join(models.CoachStudent, models.CoachStudent.student_id == models.GeneralUser.id)
         .filter(models.CoachStudent.coach_id == coach_profile.id)
         .order_by(models.User.created_at.desc())
+        .all()
+    )
+    return students
+
+
+@router.get("/coach/students/search", response_model=list[schemas.UserOut])
+def coach_search_students(
+    keyword: str = "",
+    current_user: models.User = Depends(require_coach),
+    db: Session = Depends(get_db),
+):
+    keyword = keyword.strip()
+    if not keyword:
+        return []
+    like = f"%{keyword}%"
+    students = (
+        db.query(models.User)
+        .filter(models.User.role == "general")
+        .filter(
+            or_(
+                models.User.user_id.ilike(like),
+                models.User.user_name.ilike(like),
+                models.User.email.ilike(like),
+            )
+        )
+        .order_by(models.User.created_at.desc())
+        .limit(50)
         .all()
     )
     return students

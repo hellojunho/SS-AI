@@ -1,0 +1,112 @@
+.admin-category-page {
+  max-width: 1180px;
+}
+
+.admin-category-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  margin-top: 18px;
+}
+
+.admin-category-card {
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #dbe3ee;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.admin-category-header {
+  background: var(--header-bg, #0c4b33);
+  padding: 12px 16px;
+}
+
+.admin-category-header h2 {
+  color: var(--header-link-color, #ffffff);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.admin-category-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-category-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid #eef2f7;
+  gap: 12px;
+}
+
+.admin-category-row.is-clickable {
+  cursor: pointer;
+}
+
+.admin-category-row.is-clickable:hover {
+  background: var(--selected-bg, #f5f5f5);
+}
+
+.admin-category-row:first-child {
+  border-top: none;
+}
+
+.admin-category-label {
+  font-size: 14px;
+  color: var(--link-fg, #447e9b);
+  font-weight: 600;
+}
+
+.admin-category-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-category-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  color: #111827;
+  background: #ffffff;
+  border: 1px solid transparent;
+}
+
+.admin-category-action.is-add {
+  border-color: #16a34a;
+  color: #15803d;
+}
+
+.admin-category-action.is-add:hover {
+  background: #f0fdf4;
+}
+
+.admin-category-action.is-change {
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+
+.admin-category-action.is-change:hover {
+  background: #eff6ff;
+}
+
+@media (max-width: 768px) {
+  .admin-category-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-category-row {
+    align-items: flex-start;
+  }
+}

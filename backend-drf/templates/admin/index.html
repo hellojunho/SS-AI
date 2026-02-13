@@ -18,7 +18,8 @@
           </header>
           <div class="admin-category-body">
             {% for model in category.models %}
-              <div class="admin-category-row">
+              {% with row_url=model.admin_url|default:model.add_url %}
+                <div class="admin-category-row{% if row_url %} is-clickable{% endif %}"{% if row_url %} data-url="{{ row_url }}"{% endif %}>
                 <span class="admin-category-label">{{ model.name }}</span>
                 <div class="admin-category-actions">
                   {% if model.add_url %}
@@ -29,6 +30,7 @@
                   {% endif %}
                 </div>
               </div>
+              {% endwith %}
             {% endfor %}
           </div>
         </section>
@@ -38,4 +40,15 @@
     <p>{% translate "You don't have permission to view or edit anything." %}</p>
   {% endif %}
 </div>
+<script>
+  document.querySelectorAll('.admin-category-row.is-clickable').forEach((row) => {
+    row.addEventListener('click', (event) => {
+      if (event.target.closest('.admin-category-action')) return;
+      const url = row.getAttribute('data-url');
+      if (url) {
+        window.location.href = url;
+      }
+    });
+  });
+</script>
 {% endblock %}

@@ -12,6 +12,7 @@ urlpatterns = [
     path("auth/admin/traffic", views_auth.admin_user_traffic),
     path("auth/admin/users/<int:user_id>", views_auth.admin_user_detail),
     path("auth/coach/students", views_auth.coach_students),
+    path("auth/coach/students/search", views_auth.coach_search_students),
     path("auth/coach/students/<str:student_user_id>", views_auth.coach_remove_student),
 
     path("chat/ask", views_chat.ask_chat),

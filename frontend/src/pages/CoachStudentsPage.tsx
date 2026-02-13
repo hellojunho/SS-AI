@@ -19,15 +19,13 @@ const CoachStudentsPage = () => {
   const [studentsError, setStudentsError] = useState<string | null>(null)
   const [studentIdInput, setStudentIdInput] = useState('')
   const [studentSearchInput, setStudentSearchInput] = useState('')
-  const [studentSearchKeyword, setStudentSearchKeyword] = useState('')
+  const [studentSearchResults, setStudentSearchResults] = useState<DirectoryUser[]>([])
+  const [studentSearchLoading, setStudentSearchLoading] = useState(false)
+  const [studentSearchError, setStudentSearchError] = useState<string | null>(null)
   const [registerLoading, setRegisterLoading] = useState(false)
   const [registerMessage, setRegisterMessage] = useState<string | null>(null)
 
-  const filteredStudents = useMemo(() => {
-    const keyword = studentSearchKeyword.trim().toLowerCase()
-    if (!keyword) return students
-    return students.filter((student) => student.user_id.toLowerCase().includes(keyword))
-  }, [studentSearchKeyword, students])
+  const registeredIds = useMemo(() => new Set(students.map((student) => student.user_id)), [students])
 
   const loadStudents = async () => {
     setStudentsLoading(true)
@@ -67,8 +65,8 @@ const CoachStudentsPage = () => {
     loadRole()
   }, [])
 
-  const handleRegisterStudent = async () => {
-    if (!studentIdInput.trim() || registerLoading) return
+  const registerStudentById = async (studentUserId: string) => {
+    if (!studentUserId.trim() || registerLoading) return
     setRegisterLoading(true)
     setRegisterMessage(null)
 
@@ -78,7 +76,7 @@ const CoachStudentsPage = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ student_user_id: studentIdInput.trim() }),
+        body: JSON.stringify({ student_user_id: studentUserId.trim() }),
       })
       if (!response.ok) {
         const errorData = (await response.json().catch(() => null)) as { detail?: string } | null
@@ -93,6 +91,10 @@ const CoachStudentsPage = () => {
     } finally {
       setRegisterLoading(false)
     }
+  }
+
+  const handleRegisterStudent = async () => {
+    await registerStudentById(studentIdInput.trim())
   }
 
   const handleRemoveStudent = async (studentUserId: string) => {
@@ -112,13 +114,35 @@ const CoachStudentsPage = () => {
     }
   }
 
-  const handleSearchStudent = () => {
-    setStudentSearchKeyword(studentSearchInput.trim())
+  const handleSearchStudent = async () => {
+    const keyword = studentSearchInput.trim()
+    if (!keyword) {
+      setStudentSearchError('검색어를 입력해주세요.')
+      setStudentSearchResults([])
+      return
+    }
+    setStudentSearchLoading(true)
+    setStudentSearchError(null)
+    try {
+      const response = await authorizedFetch(
+        `${API_BASE_URL}/auth/coach/students/search?keyword=${encodeURIComponent(keyword)}`,
+      )
+      if (!response.ok) {
+        throw new Error('학생 검색에 실패했습니다.')
+      }
+      const data = (await response.json()) as DirectoryUser[]
+      setStudentSearchResults(data)
+    } catch (error) {
+      setStudentSearchError(error instanceof Error ? error.message : '학생 검색에 실패했습니다.')
+    } finally {
+      setStudentSearchLoading(false)
+    }
   }
 
   const handleResetStudentSearch = () => {
     setStudentSearchInput('')
-    setStudentSearchKeyword('')
+    setStudentSearchResults([])
+    setStudentSearchError(null)
   }
 
   if (status === 'loading') {
@@ -174,7 +198,7 @@ const CoachStudentsPage = () => {
 
       <div className="card coach-students-search">
         <label className="label">
-          등록 학생 검색
+          학생 검색
           <input
             value={studentSearchInput}
             onChange={(event) => setStudentSearchInput(event.target.value)}
@@ -184,22 +208,45 @@ const CoachStudentsPage = () => {
                 handleSearchStudent()
               }
             }}
-            placeholder="등록된 학생 아이디를 검색하세요"
+            placeholder="아이디/이름/이메일로 검색하세요"
           />
         </label>
-        <button type="button" onClick={handleSearchStudent}>
-          학생 검색
+        <button type="button" onClick={handleSearchStudent} disabled={studentSearchLoading}>
+          {studentSearchLoading ? '검색 중...' : '학생 검색'}
         </button>
-        <button type="button" className="secondary" onClick={handleResetStudentSearch}>
+        <button type="button" className="secondary" onClick={handleResetStudentSearch} disabled={studentSearchLoading}>
           검색 초기화
         </button>
       </div>
 
       <UserDirectoryTable
-        users={filteredStudents}
+        users={studentSearchResults}
+        loading={studentSearchLoading}
+        error={studentSearchError}
+        emptyMessage="검색 결과가 없습니다."
+        roleOptions={['general']}
+        rowAction={(student) => {
+          if (registeredIds.has(student.user_id)) {
+            return <span className="helper-text">등록됨</span>
+          }
+          return (
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => registerStudentById(student.user_id)}
+              disabled={registerLoading}
+            >
+              등록
+            </button>
+          )
+        }}
+      />
+
+      <UserDirectoryTable
+        users={students}
         loading={studentsLoading}
         error={studentsError}
-        emptyMessage={studentSearchKeyword ? '검색 조건에 맞는 학생이 없습니다.' : '등록된 학생이 없습니다. 학생 아이디로 먼저 등록해보세요.'}
+        emptyMessage="등록된 학생이 없습니다. 학생 아이디로 먼저 등록해보세요."
         roleOptions={['general']}
         rowAction={(student) => (
           <button

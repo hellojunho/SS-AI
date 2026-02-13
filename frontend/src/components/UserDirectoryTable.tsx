@@ -104,7 +104,7 @@ const UserDirectoryTable = ({
 
   return (
     <>
-      <div className="card admin-filters">
+      {/* <div className="card admin-filters">
         <label className="label">
           사용자 ID 검색
           <input
@@ -157,7 +157,7 @@ const UserDirectoryTable = ({
         >
           초기화
         </button>
-      </label>
+      </label> */}
 
       <div className="admin-dashboard admin-compact">
         <div className="card admin-table admin-users-table">

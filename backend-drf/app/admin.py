@@ -1,6 +1,9 @@
 import os
+from typing import Optional
 
+from django import forms
 from django.contrib import admin
+from django.urls import reverse
 from django.utils.html import format_html
 
 from app.models import (
@@ -19,6 +22,121 @@ from app.models import (
     User,
     WrongQuestion,
 )
+
+
+class ChatSummaryAdminForm(forms.ModelForm):
+    user_id = forms.CharField(label="User id", max_length=50, required=False)
+    user_name = forms.CharField(label="User name", max_length=100, required=False)
+    email = forms.EmailField(label="Email", max_length=255, required=False)
+    role = forms.ChoiceField(label="Role", choices=User.ROLE_CHOICES, required=False)
+    token = forms.IntegerField(label="Token", min_value=0, required=False)
+    is_active = forms.BooleanField(label="Is active", required=False)
+
+    class Meta:
+        model = ChatSummary
+        fields = ("user", "file_path", "summary_date")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        user = getattr(self.instance, "user", None)
+        if self.instance.pk and user:
+            self.fields["user_id"].initial = user.user_id
+            self.fields["user_name"].initial = user.user_name
+            self.fields["email"].initial = user.email
+            self.fields["role"].initial = user.role
+            self.fields["token"].initial = user.token
+            self.fields["is_active"].initial = user.is_active
+        for field_name in ("user_id", "user_name", "email"):
+            if field_name in self.fields:
+                self.fields[field_name].disabled = True
+
+    def clean(self):
+        cleaned = super().clean()
+        user = getattr(self.instance, "user", None)
+        if user:
+            user_id = cleaned.get("user_id")
+            if user_id and User.objects.exclude(pk=user.pk).filter(user_id=user_id).exists():
+                self.add_error("user_id", "이미 사용 중인 User id입니다.")
+            email = cleaned.get("email")
+            if email and User.objects.exclude(pk=user.pk).filter(email=email).exists():
+                self.add_error("email", "이미 사용 중인 Email입니다.")
+        return cleaned
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if commit:
+            instance.save()
+        user = getattr(instance, "user", None)
+        if user:
+            user.role = self.cleaned_data.get("role", user.role)
+            user.token = self.cleaned_data.get("token", user.token)
+            user.is_active = self.cleaned_data.get("is_active", user.is_active)
+            if commit:
+                user.save()
+        if commit:
+            self.save_m2m()
+        return instance
+
+
+class QuizAdminForm(forms.ModelForm):
+    user_id = forms.CharField(label="User id", max_length=50, required=False)
+    user_name = forms.CharField(label="User name", max_length=100, required=False)
+    email = forms.EmailField(label="Email", max_length=255, required=False)
+    role = forms.ChoiceField(label="Role", choices=User.ROLE_CHOICES, required=False)
+    token = forms.IntegerField(label="Token", min_value=0, required=False)
+    is_active = forms.BooleanField(label="Is active", required=False)
+
+    class Meta:
+        model = Quiz
+        fields = ("user", "title", "link", "tried_at", "solved_at")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        user = getattr(self.instance, "user", None)
+        if self.instance.pk and user:
+            self.fields["user_id"].initial = user.user_id
+            self.fields["user_name"].initial = user.user_name
+            self.fields["email"].initial = user.email
+            self.fields["role"].initial = user.role
+            self.fields["token"].initial = user.token
+            self.fields["is_active"].initial = user.is_active
+        for field_name in ("user_id", "user_name", "email"):
+            if field_name in self.fields:
+                self.fields[field_name].disabled = True
+
+    def clean(self):
+        cleaned = super().clean()
+        user = getattr(self.instance, "user", None)
+        if user:
+            user_id = cleaned.get("user_id")
+            if user_id and User.objects.exclude(pk=user.pk).filter(user_id=user_id).exists():
+                self.add_error("user_id", "이미 사용 중인 User id입니다.")
+            email = cleaned.get("email")
+            if email and User.objects.exclude(pk=user.pk).filter(email=email).exists():
+                self.add_error("email", "이미 사용 중인 Email입니다.")
+        return cleaned
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if commit:
+            instance.save()
+        user = getattr(instance, "user", None)
+        if user:
+            user.role = self.cleaned_data.get("role", user.role)
+            user.token = self.cleaned_data.get("token", user.token)
+            user.is_active = self.cleaned_data.get("is_active", user.is_active)
+            if commit:
+                user.save()
+        if commit:
+            self.save_m2m()
+        return instance
+
+
+def render_user_link(user: Optional[User]) -> str:
+    if not user:
+        return "-"
+    url = reverse("admin:app_user_change", args=[user.pk])
+    return format_html('<a href="{}">{}</a>', url, user.user_id)
 
 
 @admin.register(User)
@@ -45,6 +163,7 @@ class UserAdmin(admin.ModelAdmin):
 @admin.register(AdminUser)
 class AdminUserAdmin(admin.ModelAdmin):
     list_display = ("get_user_id", "get_user_name", "get_email", "get_role", "get_token", "get_is_active", "created_at")
+    list_display_links = ()
     search_fields = ("user__user_id", "user__user_name", "user__email")
     list_filter = ("user__is_active", "created_at")
     readonly_fields = ("created_at",)
@@ -58,7 +177,7 @@ class AdminUserAdmin(admin.ModelAdmin):
     
     @admin.display(description="User ID", ordering="user__user_id")
     def get_user_id(self, obj):
-        return obj.user.user_id
+        return render_user_link(obj.user)
     
     @admin.display(description="Name", ordering="user__user_name")
     def get_user_name(self, obj):
@@ -84,6 +203,7 @@ class AdminUserAdmin(admin.ModelAdmin):
 @admin.register(CoachUser)
 class CoachUserAdmin(admin.ModelAdmin):
     list_display = ("get_user_id", "get_user_name", "get_email", "get_token", "get_is_active", "created_at")
+    list_display_links = ()
     search_fields = ("user__user_id", "user__user_name", "user__email")
     list_filter = ("user__is_active", "created_at")
     readonly_fields = ("created_at",)
@@ -97,7 +217,7 @@ class CoachUserAdmin(admin.ModelAdmin):
     
     @admin.display(description="User ID", ordering="user__user_id")
     def get_user_id(self, obj):
-        return obj.user.user_id
+        return render_user_link(obj.user)
     
     @admin.display(description="Name", ordering="user__user_name")
     def get_user_name(self, obj):
@@ -119,6 +239,7 @@ class CoachUserAdmin(admin.ModelAdmin):
 @admin.register(GeneralUser)
 class GeneralUserAdmin(admin.ModelAdmin):
     list_display = ("get_user_id", "get_user_name", "get_email", "get_token", "get_is_active", "created_at")
+    list_display_links = ()
     search_fields = ("user__user_id", "user__user_name", "user__email")
     list_filter = ("user__is_active", "created_at")
     readonly_fields = ("created_at",)
@@ -132,7 +253,7 @@ class GeneralUserAdmin(admin.ModelAdmin):
     
     @admin.display(description="User ID", ordering="user__user_id")
     def get_user_id(self, obj):
-        return obj.user.user_id
+        return render_user_link(obj.user)
     
     @admin.display(description="Name", ordering="user__user_name")
     def get_user_name(self, obj):
@@ -154,13 +275,14 @@ class GeneralUserAdmin(admin.ModelAdmin):
 @admin.register(CoachStudent)
 class CoachStudentAdmin(admin.ModelAdmin):
     list_display = ("get_coach_id", "get_coach_name", "get_student_id", "get_student_name", "created_at")
+    list_display_links = ()
     search_fields = ("coach__user__user_id", "coach__user__user_name", "student__user__user_id", "student__user__user_name")
     readonly_fields = ("created_at",)
     raw_id_fields = ("coach", "student")
     
     @admin.display(description="Coach ID", ordering="coach__user__user_id")
     def get_coach_id(self, obj):
-        return obj.coach.user.user_id
+        return render_user_link(obj.coach.user)
     
     @admin.display(description="Coach Name", ordering="coach__user__user_name")
     def get_coach_name(self, obj):
@@ -168,7 +290,7 @@ class CoachStudentAdmin(admin.ModelAdmin):
     
     @admin.display(description="Student ID", ordering="student__user__user_id")
     def get_student_id(self, obj):
-        return obj.student.user.user_id
+        return render_user_link(obj.student.user)
     
     @admin.display(description="Student Name", ordering="student__user__user_name")
     def get_student_name(self, obj):
@@ -177,25 +299,40 @@ class CoachStudentAdmin(admin.ModelAdmin):
 
 @admin.register(ChatRecord)
 class ChatRecordAdmin(admin.ModelAdmin):
+    form = ChatSummaryAdminForm
     list_display = ("id", "get_user_id", "get_user_name", "get_file_name", "created_at")
     list_filter = ("created_at", "user__user_id")
     search_fields = ("user__user_id", "user__user_name", "file_path")
-    readonly_fields = ("created_at", "get_user_info", "get_file_content")
-    raw_id_fields = ("user",)
+    readonly_fields = ("created_at", "get_file_content", "user_created_at", "user_last_logined", "user_deactivated_at")
     
-    fieldsets = (
-        ("Chat Record Info", {
-            "fields": ("user", "file_path", "created_at")
-        }),
-        ("User Information", {
-            "fields": ("get_user_info",),
-            "classes": ("collapse",)
-        }),
-        ("File Content", {
-            "fields": ("get_file_content",),
-            "classes": ("collapse",)
-        }),
-    )
+    def get_fieldsets(self, request, obj=None):
+        base = [
+            (
+                "User Basic Information",
+                {"fields": ("user_id", "user_name", "email")},
+            ),
+            (
+                "User Settings",
+                {"fields": ("role", "token", "is_active")},
+            ),
+            (
+                "User Timestamps",
+                {"fields": ("user_created_at", "user_last_logined", "user_deactivated_at")},
+            ),
+            (
+                "File Content",
+                {"fields": ("get_file_content",), "classes": ("collapse",)},
+            ),
+        ]
+        if obj is None:
+            return [
+                ("Chat Record Info", {"fields": ("user", "file_path", "created_at")}),
+                *base,
+            ]
+        return [
+            ("Chat Record Info", {"fields": ("file_path", "created_at")}),
+            *base,
+        ]
     
     @admin.display(description="Record ID", ordering="id")
     def id(self, obj):
@@ -203,7 +340,7 @@ class ChatRecordAdmin(admin.ModelAdmin):
     
     @admin.display(description="User ID", ordering="user__user_id")
     def get_user_id(self, obj):
-        return obj.user.user_id
+        return render_user_link(obj.user)
     
     @admin.display(description="User Name", ordering="user__user_name")
     def get_user_name(self, obj):
@@ -213,18 +350,23 @@ class ChatRecordAdmin(admin.ModelAdmin):
     def get_file_name(self, obj):
         return os.path.basename(obj.file_path)
     
-    @admin.display(description="User Information")
-    def get_user_info(self, obj):
-        return format_html(
-            "<strong>User ID:</strong> {}<br>"
-            "<strong>User Name:</strong> {}<br>"
-            "<strong>Email:</strong> {}<br>"
-            "<strong>Role:</strong> {}<br>",
-            obj.user.user_id,
-            obj.user.user_name,
-            obj.user.email,
-            obj.user.role
-        )
+    @admin.display(description="Created at")
+    def user_created_at(self, obj):
+        if not obj or not obj.user:
+            return "-"
+        return obj.user.created_at
+
+    @admin.display(description="Last logined")
+    def user_last_logined(self, obj):
+        if not obj or not obj.user:
+            return "-"
+        return obj.user.last_logined or "-"
+
+    @admin.display(description="Deactivated at")
+    def user_deactivated_at(self, obj):
+        if not obj or not obj.user:
+            return "-"
+        return obj.user.deactivated_at or "-"
     
     @admin.display(description="File Content")
     def get_file_content(self, obj):
@@ -258,25 +400,40 @@ class ChatRecordAdmin(admin.ModelAdmin):
 
 @admin.register(ChatSummary)
 class ChatSummaryAdmin(admin.ModelAdmin):
+    form = ChatSummaryAdminForm
     list_display = ("id", "get_user_id", "get_user_name", "get_file_name", "summary_date")
     list_filter = ("summary_date", "user__user_id")
     search_fields = ("user__user_id", "user__user_name", "file_path")
-    readonly_fields = ("summary_date", "get_user_info", "get_file_content")
-    raw_id_fields = ("user",)
-    
-    fieldsets = (
-        ("Chat Summary Info", {
-            "fields": ("user", "file_path", "summary_date")
-        }),
-        ("User Information", {
-            "fields": ("get_user_info",),
-            "classes": ("collapse",)
-        }),
-        ("File Content", {
-            "fields": ("get_file_content",),
-            "classes": ("collapse",)
-        }),
-    )
+    readonly_fields = ("summary_date", "get_file_content", "user_created_at", "user_last_logined", "user_deactivated_at")
+
+    def get_fieldsets(self, request, obj=None):
+        base = [
+            (
+                "User Basic Information",
+                {"fields": ("user_id", "user_name", "email")},
+            ),
+            (
+                "User Settings",
+                {"fields": ("role", "token", "is_active")},
+            ),
+            (
+                "User Timestamps",
+                {"fields": ("user_created_at", "user_last_logined", "user_deactivated_at")},
+            ),
+            (
+                "File Content",
+                {"fields": ("get_file_content",), "classes": ("collapse",)},
+            ),
+        ]
+        if obj is None:
+            return [
+                ("Chat Summary Info", {"fields": ("user", "file_path", "summary_date")}),
+                *base,
+            ]
+        return [
+            ("Chat Summary Info", {"fields": ("file_path", "summary_date")}),
+            *base,
+        ]
     
     @admin.display(description="Summary ID", ordering="id")
     def id(self, obj):
@@ -284,7 +441,7 @@ class ChatSummaryAdmin(admin.ModelAdmin):
     
     @admin.display(description="User ID", ordering="user__user_id")
     def get_user_id(self, obj):
-        return obj.user.user_id
+        return render_user_link(obj.user)
     
     @admin.display(description="User Name", ordering="user__user_name")
     def get_user_name(self, obj):
@@ -294,18 +451,23 @@ class ChatSummaryAdmin(admin.ModelAdmin):
     def get_file_name(self, obj):
         return os.path.basename(obj.file_path)
     
-    @admin.display(description="User Information")
-    def get_user_info(self, obj):
-        return format_html(
-            "<strong>User ID:</strong> {}<br>"
-            "<strong>User Name:</strong> {}<br>"
-            "<strong>Email:</strong> {}<br>"
-            "<strong>Role:</strong> {}<br>",
-            obj.user.user_id,
-            obj.user.user_name,
-            obj.user.email,
-            obj.user.role
-        )
+    @admin.display(description="Created at")
+    def user_created_at(self, obj):
+        if not obj or not obj.user:
+            return "-"
+        return obj.user.created_at
+
+    @admin.display(description="Last logined")
+    def user_last_logined(self, obj):
+        if not obj or not obj.user:
+            return "-"
+        return obj.user.last_logined or "-"
+
+    @admin.display(description="Deactivated at")
+    def user_deactivated_at(self, obj):
+        if not obj or not obj.user:
+            return "-"
+        return obj.user.deactivated_at or "-"
     
     @admin.display(description="File Content")
     def get_file_content(self, obj):
@@ -338,21 +500,41 @@ class ChatSummaryAdmin(admin.ModelAdmin):
 
 @admin.register(Quiz)
 class QuizAdmin(admin.ModelAdmin):
+    form = QuizAdminForm
     list_display = ("id", "title", "get_user_id", "get_user_name", "created_at", "tried_at", "solved_at")
     list_filter = ("created_at", "tried_at", "solved_at", "user__user_id")
     search_fields = ("title", "user__user_id", "user__user_name")
-    readonly_fields = ("created_at", "get_quiz_details")
+    readonly_fields = ("created_at", "get_quiz_details", "user_created_at", "user_last_logined", "user_deactivated_at")
     raw_id_fields = ("user",)
-    
-    fieldsets = (
-        ("Quiz Info", {
-            "fields": ("user", "title", "link", "created_at", "tried_at", "solved_at")
-        }),
-        ("Quiz Details", {
-            "fields": ("get_quiz_details",),
-            "classes": ("collapse",)
-        }),
-    )
+
+    def get_fieldsets(self, request, obj=None):
+        base = [
+            (
+                "User Basic Information",
+                {"fields": ("user_id", "user_name", "email")},
+            ),
+            (
+                "User Settings",
+                {"fields": ("role", "token", "is_active")},
+            ),
+            (
+                "User Timestamps",
+                {"fields": ("user_created_at", "user_last_logined", "user_deactivated_at")},
+            ),
+            (
+                "Quiz Details",
+                {"fields": ("get_quiz_details",), "classes": ("collapse",)},
+            ),
+        ]
+        if obj is None:
+            return [
+                ("Quiz Info", {"fields": ("user", "title", "link", "tried_at", "solved_at")}),
+                *base,
+            ]
+        return [
+            ("Quiz Info", {"fields": ("title", "link", "created_at", "tried_at", "solved_at")}),
+            *base,
+        ]
     
     @admin.display(description="Quiz ID", ordering="id")
     def id(self, obj):
@@ -360,7 +542,7 @@ class QuizAdmin(admin.ModelAdmin):
     
     @admin.display(description="User ID", ordering="user__user_id")
     def get_user_id(self, obj):
-        return obj.user.user_id
+        return render_user_link(obj.user)
     
     @admin.display(description="User Name", ordering="user__user_name")
     def get_user_name(self, obj):
@@ -389,6 +571,24 @@ class QuizAdmin(admin.ModelAdmin):
             obj.tried_at or "Not yet",
             obj.solved_at or "Not yet"
         )
+
+    @admin.display(description="Created at")
+    def user_created_at(self, obj):
+        if not obj or not obj.user:
+            return "-"
+        return obj.user.created_at
+
+    @admin.display(description="Last logined")
+    def user_last_logined(self, obj):
+        if not obj or not obj.user:
+            return "-"
+        return obj.user.last_logined or "-"
+
+    @admin.display(description="Deactivated at")
+    def user_deactivated_at(self, obj):
+        if not obj or not obj.user:
+            return "-"
+        return obj.user.deactivated_at or "-"
 
 
 @admin.register(QuizQuestion)
@@ -419,7 +619,7 @@ class QuizQuestionAdmin(admin.ModelAdmin):
     
     @admin.display(description="Quiz User ID", ordering="quiz__user__user_id")
     def get_quiz_user_id(self, obj):
-        return obj.quiz.user.user_id
+        return render_user_link(obj.quiz.user)
     
     @admin.display(description="Question")
     def get_question_short(self, obj):
@@ -481,7 +681,7 @@ class QuizCorrectAdmin(admin.ModelAdmin):
     
     @admin.display(description="Quiz User ID", ordering="quiz__user__user_id")
     def get_quiz_user_id(self, obj):
-        return obj.quiz.user.user_id
+        return render_user_link(obj.quiz.user)
     
     @admin.display(description="Question")
     def get_question_short(self, obj):
@@ -588,7 +788,7 @@ class QuizAnswerAdmin(admin.ModelAdmin):
     
     @admin.display(description="User ID", ordering="user__user_id")
     def get_user_id(self, obj):
-        return obj.user.user_id
+        return render_user_link(obj.user)
     
     @admin.display(description="User Name", ordering="user__user_name")
     def get_user_name(self, obj):
@@ -652,11 +852,11 @@ class WrongQuestionAdmin(admin.ModelAdmin):
     
     @admin.display(description="Creator ID", ordering="question_creator__user_id")
     def get_creator_id(self, obj):
-        return obj.question_creator.user_id
+        return render_user_link(obj.question_creator)
     
     @admin.display(description="Solver ID", ordering="solver_user__user_id")
     def get_solver_id(self, obj):
-        return obj.solver_user.user_id
+        return render_user_link(obj.solver_user)
     
     @admin.display(description="Wrong Question Details")
     def get_wrong_question_details(self, obj):

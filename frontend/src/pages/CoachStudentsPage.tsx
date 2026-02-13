@@ -22,10 +22,14 @@ const CoachStudentsPage = () => {
   const [studentSearchResults, setStudentSearchResults] = useState<DirectoryUser[]>([])
   const [studentSearchLoading, setStudentSearchLoading] = useState(false)
   const [studentSearchError, setStudentSearchError] = useState<string | null>(null)
+  const [selectedStudents, setSelectedStudents] = useState<DirectoryUser[]>([])
+  const [batchRegisterLoading, setBatchRegisterLoading] = useState(false)
+  const [batchRegisterMessage, setBatchRegisterMessage] = useState<string | null>(null)
   const [registerLoading, setRegisterLoading] = useState(false)
   const [registerMessage, setRegisterMessage] = useState<string | null>(null)
 
   const registeredIds = useMemo(() => new Set(students.map((student) => student.user_id)), [students])
+  const selectedIds = useMemo(() => new Set(selectedStudents.map((student) => student.user_id)), [selectedStudents])
 
   const loadStudents = async () => {
     setStudentsLoading(true)
@@ -65,11 +69,8 @@ const CoachStudentsPage = () => {
     loadRole()
   }, [])
 
-  const registerStudentById = async (studentUserId: string) => {
-    if (!studentUserId.trim() || registerLoading) return
-    setRegisterLoading(true)
-    setRegisterMessage(null)
-
+  const registerStudentRequest = async (studentUserId: string) => {
+    if (!studentUserId.trim()) return
     try {
       const response = await authorizedFetch(`${API_BASE_URL}/auth/coach/students`, {
         method: 'POST',
@@ -80,21 +81,36 @@ const CoachStudentsPage = () => {
       })
       if (!response.ok) {
         const errorData = (await response.json().catch(() => null)) as { detail?: string } | null
-        throw new Error(errorData?.detail || '학생 등록에 실패했습니다.')
+        return { status: 'error', message: errorData?.detail || '학생 등록에 실패했습니다.' } as const
       }
       const created = (await response.json()) as DirectoryUser
-      setStudents((prev) => [created, ...prev])
-      setStudentIdInput('')
-      setRegisterMessage('학생 등록이 완료되었습니다.')
+      return { status: 'ok', user: created } as const
     } catch (error) {
-      setRegisterMessage(error instanceof Error ? error.message : '학생 등록에 실패했습니다.')
-    } finally {
-      setRegisterLoading(false)
+      return {
+        status: 'error',
+        message: error instanceof Error ? error.message : '학생 등록에 실패했습니다.',
+      } as const
     }
   }
 
   const handleRegisterStudent = async () => {
-    await registerStudentById(studentIdInput.trim())
+    if (!studentIdInput.trim() || registerLoading) return
+    setRegisterLoading(true)
+    setRegisterMessage(null)
+    const result = await registerStudentRequest(studentIdInput.trim())
+    if (!result) {
+      setRegisterMessage('학생 등록에 실패했습니다.')
+      setRegisterLoading(false)
+      return
+    }
+    if (result.status === 'ok') {
+      setStudents((prev) => [result.user, ...prev])
+      setStudentIdInput('')
+      setRegisterMessage('학생 등록이 완료되었습니다.')
+    } else {
+      setRegisterMessage(result.message)
+    }
+    setRegisterLoading(false)
   }
 
   const handleRemoveStudent = async (studentUserId: string) => {
@@ -143,6 +159,74 @@ const CoachStudentsPage = () => {
     setStudentSearchInput('')
     setStudentSearchResults([])
     setStudentSearchError(null)
+  }
+
+  const handleSelectStudent = (student: DirectoryUser) => {
+    if (registeredIds.has(student.user_id)) {
+      setBatchRegisterMessage('이미 등록된 학생입니다.')
+      return
+    }
+    if (selectedIds.has(student.user_id)) return
+    setSelectedStudents((prev) => [student, ...prev])
+    setBatchRegisterMessage(null)
+  }
+
+  const handleRemoveSelectedStudent = (studentUserId: string) => {
+    setSelectedStudents((prev) => prev.filter((student) => student.user_id !== studentUserId))
+  }
+
+  const handleBatchRegister = async () => {
+    if (selectedStudents.length === 0 || batchRegisterLoading) return
+    setBatchRegisterLoading(true)
+    setBatchRegisterMessage(null)
+
+    const results = await Promise.all(
+      selectedStudents.map((student) => registerStudentRequest(student.user_id)),
+    )
+
+    const successUsers: DirectoryUser[] = []
+    const failedIds = new Set<string>()
+    let alreadyCount = 0
+
+    results.forEach((result, index) => {
+      const student = selectedStudents[index]
+      if (!result) {
+        failedIds.add(student.user_id)
+        return
+      }
+      if (result.status === 'ok') {
+        successUsers.push(result.user)
+        return
+      }
+      if (result.message?.includes('이미 등록된 학생')) {
+        alreadyCount += 1
+        return
+      }
+      failedIds.add(student.user_id)
+    })
+
+    if (successUsers.length > 0) {
+      setStudents((prev) => {
+        const existing = new Set(prev.map((item) => item.user_id))
+        const merged = successUsers.filter((user) => !existing.has(user.user_id))
+        return [...merged, ...prev]
+      })
+    }
+
+    setSelectedStudents((prev) => prev.filter((student) => failedIds.has(student.user_id)))
+
+    const messages: string[] = []
+    if (successUsers.length > 0) {
+      messages.push(`${successUsers.length}명 등록 완료`)
+    }
+    if (alreadyCount > 0) {
+      messages.push(`${alreadyCount}명은 이미 등록됨`)
+    }
+    if (failedIds.size > 0) {
+      messages.push(`${failedIds.size}명 등록 실패`)
+    }
+    setBatchRegisterMessage(messages.join(' · ') || '등록할 학생이 없습니다.')
+    setBatchRegisterLoading(false)
   }
 
   if (status === 'loading') {
@@ -225,22 +309,47 @@ const CoachStudentsPage = () => {
         error={studentSearchError}
         emptyMessage="검색 결과가 없습니다."
         roleOptions={['general']}
-        rowAction={(student) => {
-          if (registeredIds.has(student.user_id)) {
-            return <span className="helper-text">등록됨</span>
-          }
-          return (
+        showDateColumns={false}
+        rowClickable
+        onRowClick={handleSelectStudent}
+        tableClassName="admin-users-table--compact"
+      />
+
+      <div className="coach-students-selected">
+        <div className="coach-students-selected-header">
+          <div>
+            <h2>등록 대기 학생</h2>
+            <p>검색 결과에서 학생을 클릭하면 여기에 추가됩니다.</p>
+          </div>
+        </div>
+        {batchRegisterMessage && <p className="helper-text">{batchRegisterMessage}</p>}
+        <UserDirectoryTable
+          users={selectedStudents}
+          loading={false}
+          emptyMessage="등록 대기 학생이 없습니다."
+          roleOptions={['general']}
+          showDateColumns={false}
+          tableClassName="admin-users-table--compact"
+          rowAction={(student) => (
             <button
               type="button"
               className="ghost"
-              onClick={() => registerStudentById(student.user_id)}
-              disabled={registerLoading}
+              onClick={() => handleRemoveSelectedStudent(student.user_id)}
             >
-              등록
+              제거
             </button>
-          )
-        }}
-      />
+          )}
+        />
+        <div className="coach-students-selected-actions">
+          <button
+            type="button"
+            onClick={handleBatchRegister}
+            disabled={batchRegisterLoading || selectedStudents.length === 0}
+          >
+            {batchRegisterLoading ? '등록 중...' : '등록'}
+          </button>
+        </div>
+      </div>
 
       <UserDirectoryTable
         users={students}
@@ -248,6 +357,8 @@ const CoachStudentsPage = () => {
         error={studentsError}
         emptyMessage="등록된 학생이 없습니다. 학생 아이디로 먼저 등록해보세요."
         roleOptions={['general']}
+        showDateColumns={false}
+        tableClassName="admin-users-table--compact"
         rowAction={(student) => (
           <button
             type="button"

@@ -154,6 +154,15 @@ h1 {
   grid-template-columns: 48px 110px minmax(92px, 120px) minmax(140px, 1fr) 75px 140px 140px 70px 96px;
 }
 
+.admin-users-table.admin-users-table--compact .admin-table-row,
+.admin-users-table.admin-users-table--compact .admin-table-row.admin-user-row {
+  grid-template-columns: 48px 140px minmax(120px, 1fr) minmax(180px, 1.3fr) 90px 80px;
+}
+
+.admin-users-table.admin-users-table--compact .admin-table-row.admin-user-row.with-action {
+  grid-template-columns: 48px 140px minmax(120px, 1fr) minmax(180px, 1.3fr) 90px 80px 96px;
+}
+
 .admin-table-row {
   display: grid;
   /* compressed, fluid columns to avoid horizontal scroll */
@@ -164,6 +173,14 @@ h1 {
   padding: 6px 0;
   border-bottom: 1px solid #f1f5f9;
   min-width: 0;
+}
+
+.admin-table-row.is-clickable {
+  cursor: pointer;
+}
+
+.admin-table-row.is-clickable:hover {
+  background: #f8fafc;
 }
 
 .admin-table-header {
@@ -775,16 +792,17 @@ button.ghost:hover {
 }
 
 .logout-button.danger {
-  background: #b91c1c;
+  background: #e97373;
 }
 
 .logout-button.danger:hover {
-  background: #991b1b;
+  background: #e97373;
 }
 
 .helper-text {
   font-size: 13px;
-  color: #6b7280;
+  /* color: #6b7280; */
+  color: #e97373;
 }
 
 .helper-text a {
@@ -793,7 +811,7 @@ button.ghost:hover {
 }
 
 .error-text {
-  color: #b91c1c;
+  color: #e97373;
 }
 
 .label {
@@ -1150,8 +1168,8 @@ button:disabled {
 }
 
 .quiz-result-mark.wrong {
-  color: #dc2626;
-  border-color: #dc2626;
+  color: #e97373;
+  border-color: #e97373;
   background: rgba(254, 202, 202, 0.5);
 }
 
@@ -1202,8 +1220,8 @@ button:disabled {
 }
 
 .quiz-index-mark.wrong {
-  color: #dc2626;
-  border-color: #dc2626;
+  color: #e97373;
+  border-color: #e97373;
   background: rgba(254, 202, 202, 0.5);
 }
 
@@ -1287,7 +1305,7 @@ button:disabled {
 }
 
 .sticker-danger {
-  color: #b91c1c;
+  color: #e97373;
   background: #fee2e2;
 }
 
@@ -1387,4 +1405,33 @@ button:disabled {
   .coach-students-search {
     grid-template-columns: 1fr;
   }
+}
+
+.coach-students-selected {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.coach-students-selected-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.coach-students-selected-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.coach-students-selected-header p {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.coach-students-selected-actions {
+  display: flex;
+  justify-content: flex-end;
 }

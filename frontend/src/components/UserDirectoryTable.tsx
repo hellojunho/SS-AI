@@ -26,7 +26,11 @@ type Props = {
   roleOptions?: string[]
   pageSize?: number
   onRowClick?: (user: DirectoryUser) => void
+  rowClickable?: boolean
   rowAction?: (user: DirectoryUser) => ReactNode
+  showDateColumns?: boolean
+  tableClassName?: string
+  defaultSortKey?: SortKey
 }
 
 const DEFAULT_PAGE_SIZE = 10
@@ -46,14 +50,19 @@ const UserDirectoryTable = ({
   roleOptions,
   pageSize = DEFAULT_PAGE_SIZE,
   onRowClick,
+  rowClickable = false,
   rowAction,
+  showDateColumns = true,
+  tableClassName,
+  defaultSortKey,
 }: Props) => {
   const [searchId, setSearchId] = useState('')
   const [searchEmail, setSearchEmail] = useState('')
   const [searchRole, setSearchRole] = useState('')
+  const initialSortKey = defaultSortKey ?? (showDateColumns ? 'created_at' : 'user_id')
   const [sortConfig, setSortConfig] = useState<SortConfig>({
-    key: 'created_at',
-    direction: 'desc',
+    key: initialSortKey,
+    direction: initialSortKey === 'created_at' || initialSortKey === 'last_logined' ? 'desc' : 'asc',
   })
   const [page, setPage] = useState(1)
 
@@ -160,7 +169,7 @@ const UserDirectoryTable = ({
       </label> */}
 
       <div className="admin-dashboard admin-compact">
-        <div className="card admin-table admin-users-table">
+        <div className={`card admin-table admin-users-table ${tableClassName ?? ''}`.trim()}>
           <div className={`admin-table-row admin-table-header admin-user-row ${rowAction ? "with-action" : ""}`}>
             <span>INDEX</span>
             <button type="button" className="admin-sort" onClick={() => handleSort('user_id')}>
@@ -175,12 +184,16 @@ const UserDirectoryTable = ({
             <button type="button" className="admin-sort" onClick={() => handleSort('role')}>
               역할 {renderSortIndicator('role')}
             </button>
-            <button type="button" className="admin-sort" onClick={() => handleSort('created_at')}>
-              가입일 {renderSortIndicator('created_at')}
-            </button>
-            <button type="button" className="admin-sort" onClick={() => handleSort('last_logined')}>
-              최근 로그인 {renderSortIndicator('last_logined')}
-            </button>
+            {showDateColumns && (
+              <button type="button" className="admin-sort" onClick={() => handleSort('created_at')}>
+                가입일 {renderSortIndicator('created_at')}
+              </button>
+            )}
+            {showDateColumns && (
+              <button type="button" className="admin-sort" onClick={() => handleSort('last_logined')}>
+                최근 로그인 {renderSortIndicator('last_logined')}
+              </button>
+            )}
             <span>상태</span>
             {rowAction && <span>액션</span>}
           </div>
@@ -190,9 +203,18 @@ const UserDirectoryTable = ({
             <div className="admin-table-empty">{emptyMessage}</div>
           ) : (
             pagedUsers.map((user, idx) => (
-              <div key={user.id} className={`admin-table-row admin-user-row ${rowAction ? "with-action" : ""}`}>
+              <div
+                key={user.id}
+                className={`admin-table-row admin-user-row ${rowAction ? "with-action" : ""} ${rowClickable ? 'is-clickable' : ''}`}
+                onClick={(event) => {
+                  if (!rowClickable || !onRowClick) return
+                  const target = event.target as HTMLElement
+                  if (target.closest('button, a')) return
+                  onRowClick(user)
+                }}
+              >
                 <span>{(currentPage - 1) * pageSize + idx + 1}</span>
-                {onRowClick ? (
+                {onRowClick && !rowClickable ? (
                   <button type="button" className="link-button" onClick={() => onRowClick(user)}>
                     {user.user_id}
                   </button>
@@ -202,8 +224,8 @@ const UserDirectoryTable = ({
                 <span>{user.user_name}</span>
                 <span>{user.email}</span>
                 <span>{user.role}</span>
-                <span>{formatDate(user.created_at)}</span>
-                <span>{formatDate(user.last_logined)}</span>
+                {showDateColumns && <span>{formatDate(user.created_at)}</span>}
+                {showDateColumns && <span>{formatDate(user.last_logined)}</span>}
                 <span>{user.is_active ? '활성' : '탈퇴'}</span>
                 {rowAction && <div>{rowAction(user)}</div>}
               </div>

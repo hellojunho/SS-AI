@@ -1,36 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { authorizedFetch } from '../api'
-import { API_BASE_URL } from '../config'
+import UserDirectoryTable, { type DirectoryUser } from '../components/UserDirectoryTable'
 import AdminNav from '../components/AdminNav'
+import { API_BASE_URL } from '../config'
 import { useAdminStatus } from '../hooks/useAdminStatus'
-
-type AdminUser = {
-  id: number
-  user_id: string
-  user_name: string
-  email: string
-  role: string
-  created_at: string
-  last_logined: string | null
-  is_active: boolean
-  deactivated_at: string | null
-}
-
-type SortKey = 'user_id' | 'user_name' | 'email' | 'role' | 'created_at' | 'last_logined'
-
-type SortConfig = {
-  key: SortKey
-  direction: 'asc' | 'desc'
-}
-
-const PAGE_SIZE = 10
 
 const AdminUsersPage = () => {
   const navigate = useNavigate()
   const status = useAdminStatus()
-  const [users, setUsers] = useState<AdminUser[]>([])
+  const [users, setUsers] = useState<DirectoryUser[]>([])
   const [usersLoading, setUsersLoading] = useState(false)
   const [usersError, setUsersError] = useState<string | null>(null)
   const [createLoading, setCreateLoading] = useState(false)
@@ -44,15 +24,6 @@ const AdminUsersPage = () => {
     role: 'general',
   })
 
-  const [searchId, setSearchId] = useState('')
-  const [searchEmail, setSearchEmail] = useState('')
-  const [searchRole, setSearchRole] = useState('')
-  const [sortConfig, setSortConfig] = useState<SortConfig>({
-    key: 'created_at',
-    direction: 'desc',
-  })
-  const [page, setPage] = useState(1)
-
   useEffect(() => {
     if (status !== 'allowed') return
     const loadUsers = async () => {
@@ -63,7 +34,7 @@ const AdminUsersPage = () => {
         if (!response.ok) {
           throw new Error('사용자 정보를 불러오지 못했습니다.')
         }
-        const data = (await response.json()) as AdminUser[]
+        const data = (await response.json()) as DirectoryUser[]
         setUsers(data)
       } catch (error) {
         setUsersError('사용자 정보를 불러오지 못했습니다.')
@@ -73,10 +44,6 @@ const AdminUsersPage = () => {
     }
     loadUsers()
   }, [status])
-
-  useEffect(() => {
-    setPage(1)
-  }, [searchId, searchEmail, searchRole])
 
   const handleCreateUser = async () => {
     if (createLoading) return
@@ -93,7 +60,7 @@ const AdminUsersPage = () => {
       if (!response.ok) {
         throw new Error('사용자 생성을 완료하지 못했습니다.')
       }
-      const created = (await response.json()) as AdminUser
+      const created = (await response.json()) as DirectoryUser
       setUsers((prev) => [created, ...prev])
       setCreateForm({
         user_id: '',
@@ -107,60 +74,6 @@ const AdminUsersPage = () => {
     } finally {
       setCreateLoading(false)
     }
-  }
-
-  const formatDate = (value: string | null) => {
-    if (!value) return '-'
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return value
-    return date.toLocaleString('ko-KR')
-  }
-
-  const filteredUsers = useMemo(() => {
-    const idQuery = searchId.trim().toLowerCase()
-    const emailQuery = searchEmail.trim().toLowerCase()
-    const roleQuery = searchRole.trim().toLowerCase()
-    return users.filter((user) => {
-      const matchesId = idQuery ? user.user_id.toLowerCase().includes(idQuery) : true
-      const matchesEmail = emailQuery ? user.email.toLowerCase().includes(emailQuery) : true
-      const matchesRole = roleQuery ? user.role.toLowerCase() === roleQuery : true
-      return matchesId && matchesEmail && matchesRole
-    })
-  }, [users, searchId, searchEmail, searchRole])
-
-  const sortedUsers = useMemo(() => {
-    if (!sortConfig) return filteredUsers
-    const { key, direction } = sortConfig
-    const multiplier = direction === 'asc' ? 1 : -1
-    const sorted = [...filteredUsers].sort((a, b) => {
-      const valueA = a[key]
-      const valueB = b[key]
-      if (key === 'created_at' || key === 'last_logined') {
-        const dateA = valueA ? new Date(valueA).getTime() : 0
-        const dateB = valueB ? new Date(valueB).getTime() : 0
-        return (dateA - dateB) * multiplier
-      }
-      return String(valueA).localeCompare(String(valueB), 'ko', { sensitivity: 'base' }) * multiplier
-    })
-    return sorted
-  }, [filteredUsers, sortConfig])
-
-  const totalPages = Math.max(1, Math.ceil(sortedUsers.length / PAGE_SIZE))
-  const currentPage = Math.min(page, totalPages)
-  const pagedUsers = sortedUsers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
-
-  const handleSort = (key: SortKey) => {
-    setSortConfig((prev) => {
-      if (prev?.key === key) {
-        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
-      }
-      return { key, direction: 'asc' }
-    })
-  }
-
-  const renderSortIndicator = (key: SortKey) => {
-    if (sortConfig.key !== key) return null
-    return sortConfig.direction === 'asc' ? '▲' : '▼'
   }
 
   if (status === 'loading') {
@@ -261,100 +174,14 @@ const AdminUsersPage = () => {
         </div>
         {createError && <p className="helper-text error-text">{createError}</p>}
       </div>
-      <div className="card admin-filters">
-        <label className="label">
-          사용자 ID 검색
-          <input
-            value={searchId}
-            onChange={(event) => setSearchId(event.target.value)}
-            placeholder="아이디를 입력하세요"
-          />
-        </label>
-        <label className="label">
-          이메일 검색
-          <input
-            value={searchEmail}
-            onChange={(event) => setSearchEmail(event.target.value)}
-            placeholder="이메일을 입력하세요"
-          />
-        </label>
-        <label className="label">
-          역할 검색
-          <select value={searchRole} onChange={(event) => setSearchRole(event.target.value)}>
-            <option value="">전체</option>
-            <option value="general">general</option>
-            <option value="coach">coach</option>
-            <option value="admin">admin</option>
-          </select>
-        </label>
-      </div>
-      <label className="label" style={{ alignItems: 'flex-end' }}>
-        <button type="button" onClick={() => {
-          setSearchId('')
-          setSearchEmail('')
-          setSearchRole('')
-        }}>
-          초기화
-        </button>
-      </label>
-      <div className="admin-dashboard admin-compact">
-        <div className="card admin-table admin-users-table">
-          <div className="admin-table-row admin-table-header">
-            <span>INDEX</span>
-            <button type="button" className="admin-sort" onClick={() => handleSort('user_id')}>
-              ID {renderSortIndicator('user_id')}
-            </button>
-            <button type="button" className="admin-sort" onClick={() => handleSort('user_name')}>
-              이름 {renderSortIndicator('user_name')}
-            </button>
-            <button type="button" className="admin-sort" onClick={() => handleSort('email')}>
-              이메일 {renderSortIndicator('email')}
-            </button>
-            <button type="button" className="admin-sort" onClick={() => handleSort('role')}>
-              역할 {renderSortIndicator('role')}
-            </button>
-            <span>상태</span>
-          </div>
-          {usersLoading ? (
-            <div className="admin-table-empty">사용자 정보를 불러오는 중...</div>
-          ) : pagedUsers.length === 0 ? (
-            <div className="admin-table-empty">조건에 맞는 사용자가 없습니다.</div>
-          ) : (
-            pagedUsers.map((user, idx) => (
-              <div key={user.id} className="admin-table-row">
-                <span>{(currentPage - 1) * PAGE_SIZE + idx + 1}</span>
-                <button
-                  type="button"
-                  className="link-button"
-                  onClick={() => navigate(`/admin/users/${user.id}`)}
-                >
-                  {user.user_id}
-                </button>
-                <span>{user.user_name}</span>
-                <span>{user.email}</span>
-                <span>{user.role}</span>
-                <span>{user.is_active ? '활성' : '탈퇴'}</span>
-              </div>
-            ))
-          )}
-          {usersError && <p className="helper-text error-text">{usersError}</p>}
-        </div>
-        <div className="admin-pagination">
-          <button type="button" onClick={() => setPage((prev) => Math.max(1, prev - 1))} disabled={currentPage === 1}>
-            이전
-          </button>
-          <span>
-            {currentPage} / {totalPages}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-            disabled={currentPage === totalPages}
-          >
-            다음
-          </button>
-        </div>
-      </div>
+
+      <UserDirectoryTable
+        users={users}
+        loading={usersLoading}
+        error={usersError}
+        emptyMessage="조건에 맞는 사용자가 없습니다."
+        onRowClick={(user) => navigate(`/admin/users/${user.id}`)}
+      />
     </section>
   )
 }

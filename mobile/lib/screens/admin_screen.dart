@@ -151,7 +151,10 @@ class _AdminScreenState extends State<AdminScreen> {
                     ],
                   ),
                 ),
-      bottomNavigationBar: const MainBottomNav(currentIndex: 2),
+      bottomNavigationBar: MainBottomNav(
+        currentIndex: 2,
+        authService: widget.services.authService,
+      ),
     );
   }
 }

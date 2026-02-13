@@ -4,6 +4,7 @@ import 'services/api_client.dart';
 import 'services/admin_service.dart';
 import 'services/auth_service.dart';
 import 'services/chat_service.dart';
+import 'services/coach_service.dart';
 import 'services/quiz_service.dart';
 import 'screens/admin_quizzes_screen.dart';
 import 'screens/admin_screen.dart';
@@ -16,13 +17,15 @@ import 'screens/my_page_screen.dart';
 import 'screens/quiz_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/wrong_notes_screen.dart';
+import 'screens/coach_students_screen.dart';
 
 class AppServices {
   AppServices._(this.authService)
       : apiClient = ApiClient(authService),
         chatService = ChatService(ApiClient(authService)),
         quizService = QuizService(ApiClient(authService)),
-        adminService = AdminService(ApiClient(authService));
+        adminService = AdminService(ApiClient(authService)),
+        coachService = CoachService(ApiClient(authService));
 
   factory AppServices() => AppServices._(AuthService());
 
@@ -31,6 +34,7 @@ class AppServices {
   final ChatService chatService;
   final QuizService quizService;
   final AdminService adminService;
+  final CoachService coachService;
 }
 
 class SSApp extends StatefulWidget {
@@ -44,6 +48,7 @@ class SSApp extends StatefulWidget {
 
 class _SSAppState extends State<SSApp> {
   final ValueNotifier<bool> _isAuthenticated = ValueNotifier(false);
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -58,6 +63,11 @@ class _SSAppState extends State<SSApp> {
 
   void _setAuthenticated(bool value) {
     _isAuthenticated.value = value;
+    if (!value) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _navigatorKey.currentState?.pushNamedAndRemoveUntil('/', (route) => false);
+      });
+    }
   }
 
   @override
@@ -68,6 +78,7 @@ class _SSAppState extends State<SSApp> {
         return MaterialApp(
           title: 'SS-AI Mobile',
           theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
+          navigatorKey: _navigatorKey,
           routes: {
             '/': (context) => authed
                 ? HomeScreen(services: widget.services)
@@ -81,6 +92,7 @@ class _SSAppState extends State<SSApp> {
             '/admin': (context) => AdminScreen(services: widget.services),
             '/admin/users': (context) => AdminUsersScreen(services: widget.services),
             '/admin/quizzes': (context) => AdminQuizzesScreen(services: widget.services),
+            '/coach/students': (context) => CoachStudentsScreen(services: widget.services),
           },
         );
       },

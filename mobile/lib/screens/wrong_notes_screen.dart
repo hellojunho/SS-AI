@@ -237,7 +237,10 @@ class _WrongNotesScreenState extends State<WrongNotesScreen> {
                         ],
                       ),
       ),
-      bottomNavigationBar: const MainBottomNav(currentIndex: 2),
+      bottomNavigationBar: MainBottomNav(
+        currentIndex: 2,
+        authService: widget.services.authService,
+      ),
     );
   }
 }

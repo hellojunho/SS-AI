@@ -100,6 +100,17 @@ class _MyPageScreenState extends State<MyPageScreen> {
                               },
                             ),
                           ],
+                          if (_profile!.role == 'coach') ...[
+                            const SizedBox(height: 12),
+                            _ActionCard(
+                              title: '학생 등록',
+                              description: '학생을 검색하고 등록 목록을 관리합니다.',
+                              icon: Icons.groups_outlined,
+                              onTap: () {
+                                Navigator.pushNamed(context, '/coach/students');
+                              },
+                            ),
+                          ],
                           const SizedBox(height: 16),
                           _InfoCard(
                             title: '계정',
@@ -112,9 +123,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
                                   onPressed: () async {
                                     await widget.services.authService.logout();
                                     widget.onLogout(false);
-                                    if (mounted) {
-                                      Navigator.popUntil(context, ModalRoute.withName('/'));
-                                    }
                                   },
                                   icon: const Icon(Icons.logout),
                                   label: const Text('로그아웃'),
@@ -142,9 +150,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
                                     try {
                                       await widget.services.authService.withdraw();
                                       widget.onLogout(false);
-                                      if (mounted) {
-                                        Navigator.popUntil(context, ModalRoute.withName('/'));
-                                      }
                                     } catch (error) {
                                       if (mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
@@ -162,7 +167,10 @@ class _MyPageScreenState extends State<MyPageScreen> {
                         ],
                       ),
       ),
-      bottomNavigationBar: const MainBottomNav(currentIndex: 2),
+      bottomNavigationBar: MainBottomNav(
+        currentIndex: 2,
+        authService: widget.services.authService,
+      ),
     );
   }
 }

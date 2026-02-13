@@ -82,7 +82,10 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                         ),
                       ],
                     ),
-      bottomNavigationBar: const MainBottomNav(currentIndex: 2),
+      bottomNavigationBar: MainBottomNav(
+        currentIndex: 2,
+        authService: widget.services.authService,
+      ),
     );
   }
 }
@@ -147,7 +150,10 @@ class _ChatHistoryDetailScreenState extends State<ChatHistoryDetailScreen> {
                         return _ChatBubble(entry: entry);
                       },
                     ),
-      bottomNavigationBar: const MainBottomNav(currentIndex: 2),
+      bottomNavigationBar: MainBottomNav(
+        currentIndex: 2,
+        authService: widget.services.authService,
+      ),
     );
   }
 }

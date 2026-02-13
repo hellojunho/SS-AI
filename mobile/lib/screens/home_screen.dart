@@ -46,7 +46,10 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: const MainBottomNav(currentIndex: 0),
+      bottomNavigationBar: MainBottomNav(
+        currentIndex: 0,
+        authService: services.authService,
+      ),
     );
   }
 }

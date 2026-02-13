@@ -134,7 +134,10 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const MainBottomNav(currentIndex: 0),
+      bottomNavigationBar: MainBottomNav(
+        currentIndex: 0,
+        authService: widget.services.authService,
+      ),
     );
   }
 }

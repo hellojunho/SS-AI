@@ -253,7 +253,10 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
           _buildQuizPane(all: true),
         ],
       ),
-      bottomNavigationBar: const MainBottomNav(currentIndex: 1),
+      bottomNavigationBar: MainBottomNav(
+        currentIndex: 1,
+        authService: widget.services.authService,
+      ),
     );
   }
 

@@ -9,6 +9,7 @@ const SignupPage = () => {
   const [userName, setUserName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [role, setRole] = useState<'general' | 'coach'>('general')
   const [message, setMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
@@ -50,6 +51,7 @@ const SignupPage = () => {
           user_name: userName,
           email,
           password,
+          role,
         }),
       })
       if (!response.ok) {
@@ -112,6 +114,13 @@ const SignupPage = () => {
             onChange={(event) => setPassword(event.target.value)}
             placeholder="비밀번호를 입력하세요"
           />
+        </label>
+        <label className="label">
+          역할
+          <select value={role} onChange={(event) => setRole(event.target.value as 'general' | 'coach')}>
+            <option value="general">일반 사용자</option>
+            <option value="coach">코치</option>
+          </select>
         </label>
         <button type="submit" disabled={loading}>
           {loading ? '가입 중' : '회원가입'}

@@ -123,6 +123,36 @@ def _ensure_admin_user() -> None:
         )
 
 
+def _ensure_role_tables() -> None:
+    inspector = inspect(engine)
+    table_names = set(inspector.get_table_names())
+    required_tables = {"admin_users", "coach_users", "general_users"}
+    if not required_tables.issubset(table_names):
+        return
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO admin_users (user_id) "
+                "SELECT id FROM users WHERE role = 'admin' "
+                "AND id NOT IN (SELECT user_id FROM admin_users)"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO coach_users (user_id) "
+                "SELECT id FROM users WHERE role = 'coach' "
+                "AND id NOT IN (SELECT user_id FROM coach_users)"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO general_users (user_id) "
+                "SELECT id FROM users WHERE role = 'general' "
+                "AND id NOT IN (SELECT user_id FROM general_users)"
+            )
+        )
+
+
 @app.on_event("startup")
 async def startup() -> None:
     for attempt in range(1, settings.database_connect_max_retries + 1):
@@ -133,6 +163,7 @@ async def startup() -> None:
             _ensure_quiz_created_at_column()
             _ensure_users_role_column()
             _ensure_admin_user()
+            _ensure_role_tables()
             return
         except Exception:
             if attempt == settings.database_connect_max_retries:

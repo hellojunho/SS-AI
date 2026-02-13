@@ -20,19 +20,73 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
+def _normalize_role(role: schemas.UserRole | str) -> str:
+    return role.value if isinstance(role, schemas.UserRole) else role
+
+
+def _ensure_role_profile(db: Session, user: models.User, role: schemas.UserRole | str) -> None:
+    role_value = _normalize_role(role)
+    if role_value == "admin":
+        exists = db.query(models.AdminUser).filter(models.AdminUser.user_id == user.id).first()
+        if not exists:
+            db.add(models.AdminUser(user_id=user.id))
+    elif role_value == "coach":
+        exists = db.query(models.CoachUser).filter(models.CoachUser.user_id == user.id).first()
+        if not exists:
+            db.add(models.CoachUser(user_id=user.id))
+    else:
+        exists = db.query(models.GeneralUser).filter(models.GeneralUser.user_id == user.id).first()
+        if not exists:
+            db.add(models.GeneralUser(user_id=user.id))
+
+
+def _delete_role_profiles(db: Session, user: models.User) -> None:
+    admin_profile = db.query(models.AdminUser).filter(models.AdminUser.user_id == user.id).first()
+    if admin_profile:
+        db.delete(admin_profile)
+    coach_profile = db.query(models.CoachUser).filter(models.CoachUser.user_id == user.id).first()
+    if coach_profile:
+        db.query(models.CoachStudent).filter(
+            models.CoachStudent.coach_id == coach_profile.id
+        ).delete(synchronize_session=False)
+        db.delete(coach_profile)
+    general_profile = db.query(models.GeneralUser).filter(models.GeneralUser.user_id == user.id).first()
+    if general_profile:
+        db.query(models.CoachStudent).filter(
+            models.CoachStudent.student_id == general_profile.id
+        ).delete(synchronize_session=False)
+        db.delete(general_profile)
+
+
+def _sync_user_role(db: Session, user: models.User, role: schemas.UserRole | str) -> None:
+    role_value = _normalize_role(role)
+    if user.role == role_value:
+        _ensure_role_profile(db, user, role_value)
+        return
+    _delete_role_profiles(db, user)
+    user.role = role_value
+    _ensure_role_profile(db, user, role_value)
+
+
 @router.post("/register", response_model=schemas.UserOut)
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if db.query(models.User).filter(models.User.user_id == user.user_id).first():
         raise HTTPException(status_code=400, detail="이미 존재하는 사용자입니다.")
     if db.query(models.User).filter(models.User.email == user.email).first():
         raise HTTPException(status_code=400, detail="이미 존재하는 이메일입니다.")
+    role_value = _normalize_role(user.role)
+    if role_value == "admin":
+        raise HTTPException(status_code=403, detail="관리자는 회원가입으로 생성할 수 없습니다.")
     new_user = models.User(
         user_id=user.user_id,
         user_name=user.user_name,
         password_hash=hash_password(user.password),
         email=user.email,
+        role=role_value,
     )
     db.add(new_user)
+    db.flush()
+    _ensure_role_profile(db, new_user, role_value)
     db.commit()
     db.refresh(new_user)
     return new_user
@@ -94,6 +148,12 @@ def get_current_user(
 def require_admin(current_user: models.User = Depends(get_current_user)) -> models.User:
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="관리자 권한이 필요합니다.")
+    return current_user
+
+
+def require_coach(current_user: models.User = Depends(get_current_user)) -> models.User:
+    if current_user.role != "coach":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="코치 권한이 필요합니다.")
     return current_user
 
 
@@ -239,7 +299,7 @@ def admin_update_user(
     if payload.user_name is not None:
         user.user_name = payload.user_name
     if payload.role is not None:
-        user.role = payload.role
+        _sync_user_role(db, user, payload.role)
     if payload.password:
         user.password_hash = hash_password(payload.password)
         user.token += 1
@@ -258,14 +318,17 @@ def admin_create_user(
         raise HTTPException(status_code=400, detail="이미 존재하는 사용자입니다.")
     if db.query(models.User).filter(models.User.email == payload.email).first():
         raise HTTPException(status_code=400, detail="이미 존재하는 이메일입니다.")
+    role_value = _normalize_role(payload.role)
     new_user = models.User(
         user_id=payload.user_id,
         user_name=payload.user_name,
         password_hash=hash_password(payload.password),
         email=payload.email,
-        role=payload.role,
+        role=role_value,
     )
     db.add(new_user)
+    db.flush()
+    _ensure_role_profile(db, new_user, role_value)
     db.commit()
     db.refresh(new_user)
     return new_user
@@ -296,6 +359,7 @@ def admin_delete_user(
     quizzes = db.query(models.Quiz).filter(models.Quiz.user_id == user.id).all()
     for quiz in quizzes:
         db.delete(quiz)
+    _delete_role_profiles(db, user)
     db.delete(user)
     db.commit()
     return None
@@ -311,3 +375,90 @@ def admin_get_user(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="사용자를 찾을 수 없습니다.")
     return user
+
+
+@router.get("/coach/students", response_model=list[schemas.UserOut])
+def coach_list_students(
+    current_user: models.User = Depends(require_coach),
+    db: Session = Depends(get_db),
+):
+    coach_profile = db.query(models.CoachUser).filter(models.CoachUser.user_id == current_user.id).first()
+    if not coach_profile:
+        coach_profile = models.CoachUser(user_id=current_user.id)
+        db.add(coach_profile)
+        db.flush()
+    students = (
+        db.query(models.User)
+        .join(models.GeneralUser, models.GeneralUser.user_id == models.User.id)
+        .join(models.CoachStudent, models.CoachStudent.student_id == models.GeneralUser.id)
+        .filter(models.CoachStudent.coach_id == coach_profile.id)
+        .order_by(models.User.created_at.desc())
+        .all()
+    )
+    return students
+
+
+@router.post("/coach/students", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED)
+def coach_add_student(
+    payload: schemas.CoachStudentCreate,
+    current_user: models.User = Depends(require_coach),
+    db: Session = Depends(get_db),
+):
+    coach_profile = db.query(models.CoachUser).filter(models.CoachUser.user_id == current_user.id).first()
+    if not coach_profile:
+        coach_profile = models.CoachUser(user_id=current_user.id)
+        db.add(coach_profile)
+        db.flush()
+    student_user = db.query(models.User).filter(models.User.user_id == payload.student_user_id).first()
+    if not student_user or student_user.role != "general":
+        raise HTTPException(status_code=404, detail="학생 정보를 찾을 수 없습니다.")
+    student_profile = db.query(models.GeneralUser).filter(models.GeneralUser.user_id == student_user.id).first()
+    if not student_profile:
+        student_profile = models.GeneralUser(user_id=student_user.id)
+        db.add(student_profile)
+        db.flush()
+    exists = (
+        db.query(models.CoachStudent)
+        .filter(
+            models.CoachStudent.coach_id == coach_profile.id,
+            models.CoachStudent.student_id == student_profile.id,
+        )
+        .first()
+    )
+    if exists:
+        raise HTTPException(status_code=400, detail="이미 등록된 학생입니다.")
+    db.add(models.CoachStudent(coach_id=coach_profile.id, student_id=student_profile.id))
+    db.commit()
+    db.refresh(student_user)
+    return student_user
+
+
+@router.delete("/coach/students/{student_user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def coach_remove_student(
+    student_user_id: str,
+    current_user: models.User = Depends(require_coach),
+    db: Session = Depends(get_db),
+):
+    coach_profile = db.query(models.CoachUser).filter(models.CoachUser.user_id == current_user.id).first()
+    if not coach_profile:
+        coach_profile = models.CoachUser(user_id=current_user.id)
+        db.add(coach_profile)
+        db.flush()
+    student_user = db.query(models.User).filter(models.User.user_id == student_user_id).first()
+    if not student_user:
+        raise HTTPException(status_code=404, detail="학생 정보를 찾을 수 없습니다.")
+    student_profile = db.query(models.GeneralUser).filter(models.GeneralUser.user_id == student_user.id).first()
+    if not student_profile:
+        raise HTTPException(status_code=404, detail="학생 정보를 찾을 수 없습니다.")
+    deleted = (
+        db.query(models.CoachStudent)
+        .filter(
+            models.CoachStudent.coach_id == coach_profile.id,
+            models.CoachStudent.student_id == student_profile.id,
+        )
+        .delete(synchronize_session=False)
+    )
+    if not deleted:
+        raise HTTPException(status_code=404, detail="등록된 학생이 아닙니다.")
+    db.commit()
+    return None

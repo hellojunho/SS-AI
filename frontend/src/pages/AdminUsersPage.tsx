@@ -249,6 +249,7 @@ const AdminUsersPage = () => {
               onChange={(event) => setCreateForm((prev) => ({ ...prev, role: event.target.value }))}
             >
               <option value="general">general</option>
+              <option value="coach">coach</option>
               <option value="admin">admin</option>
             </select>
           </label>
@@ -282,6 +283,7 @@ const AdminUsersPage = () => {
           <select value={searchRole} onChange={(event) => setSearchRole(event.target.value)}>
             <option value="">전체</option>
             <option value="general">general</option>
+            <option value="coach">coach</option>
             <option value="admin">admin</option>
           </select>
         </label>

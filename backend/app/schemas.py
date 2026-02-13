@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 
 from pydantic import BaseModel, EmailStr, field_validator
 
@@ -11,13 +12,26 @@ def _validate_password_length(password: str) -> str:
     return password
 
 
+class UserRole(str, Enum):
+    admin = "admin"
+    coach = "coach"
+    general = "general"
+
+
 class UserCreate(BaseModel):
     user_id: str
     user_name: str
     password: str
     email: EmailStr
+    role: UserRole = UserRole.general
 
     _password_length = field_validator("password")(_validate_password_length)
+    @field_validator("role")
+    @classmethod
+    def _reject_admin_signup(cls, value: UserRole) -> UserRole:
+        if value == UserRole.admin:
+            raise ValueError("관리자는 회원가입으로 생성할 수 없습니다.")
+        return value
 
 
 class UserLogin(BaseModel):
@@ -32,7 +46,7 @@ class UserOut(BaseModel):
     user_id: str
     user_name: str
     email: EmailStr
-    role: str
+    role: UserRole
     created_at: datetime
     last_logined: datetime | None
     is_active: bool
@@ -182,7 +196,7 @@ class AdminQuizJobStatus(BaseModel):
 class AdminUserUpdate(BaseModel):
     user_name: str | None = None
     email: EmailStr | None = None
-    role: str | None = None
+    role: UserRole | None = None
     password: str | None = None
 
     _password_length = field_validator("password")(_validate_password_length)
@@ -193,9 +207,13 @@ class AdminUserCreate(BaseModel):
     user_name: str
     password: str
     email: EmailStr
-    role: str = "general"
+    role: UserRole = UserRole.general
 
     _password_length = field_validator("password")(_validate_password_length)
+
+
+class CoachStudentCreate(BaseModel):
+    student_user_id: str
 
 
 class AdminQuizUpdate(BaseModel):

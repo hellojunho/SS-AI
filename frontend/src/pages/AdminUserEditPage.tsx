@@ -88,6 +88,7 @@ const AdminUserEditPage = () => {
           역할
           <select value={user.role} onChange={(e) => setUser({ ...user, role: e.target.value })}>
             <option value="general">general</option>
+            <option value="coach">coach</option>
             <option value="admin">admin</option>
           </select>
         </label>

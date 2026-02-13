@@ -22,9 +22,83 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     deactivated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
+    admin_profile = relationship(
+        "AdminUser",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    coach_profile = relationship(
+        "CoachUser",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    general_profile = relationship(
+        "GeneralUser",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
     chat_records = relationship("ChatRecord", back_populates="user")
     chat_summaries = relationship("ChatSummary", back_populates="user")
     quizzes = relationship("Quiz", back_populates="user")
+
+
+class AdminUser(Base):
+    __tablename__ = "admin_users"
+    __table_args__ = (UniqueConstraint("user_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="admin_profile")
+
+
+class CoachUser(Base):
+    __tablename__ = "coach_users"
+    __table_args__ = (UniqueConstraint("user_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="coach_profile")
+    students = relationship(
+        "CoachStudent",
+        back_populates="coach",
+        cascade="all, delete-orphan",
+    )
+
+
+class GeneralUser(Base):
+    __tablename__ = "general_users"
+    __table_args__ = (UniqueConstraint("user_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="general_profile")
+    coaches = relationship(
+        "CoachStudent",
+        back_populates="student",
+        cascade="all, delete-orphan",
+    )
+
+
+class CoachStudent(Base):
+    __tablename__ = "coach_students"
+    __table_args__ = (UniqueConstraint("coach_id", "student_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    coach_id: Mapped[int] = mapped_column(Integer, ForeignKey("coach_users.id"), nullable=False)
+    student_id: Mapped[int] = mapped_column(Integer, ForeignKey("general_users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    coach = relationship("CoachUser", back_populates="students")
+    student = relationship("GeneralUser", back_populates="coaches")
 
 
 class ChatRecord(Base):
